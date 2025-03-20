@@ -1,0 +1,38 @@
+my_ai_server/
+├── app/
+│   ├── __init__.py
+│   ├── routes/
+│   │   ├── __init__.py
+│   │   ├── model1_routes.py
+│   │   └── model2_routes.py
+│   ├── models/
+│   │   ├── __init__.py
+│   │   ├── model1.py
+│   │   └── model2.py
+│   ├── utils/
+│   │   ├── __init__.py
+│   │   └── helper.py
+│   └── config.py
+├── tests/
+│   ├── __init__.py
+│   ├── test_model1.py
+│   └── test_model2.py
+├── venv/
+├── requirements.txt
+└── run.py
+
+app/: Flask 애플리케이션의 핵심 코드를 포함하는 패키지입니다.
+__init__.py: Flask 애플리케이션 인스턴스를 생성하고 초기화합니다.
+routes/: API 엔드포인트 관련 코드를 분리하여 관리합니다.
+각 AI 모델별로 라우트 파일을 생성하여 관리합니다 (model1_routes.py, model2_routes.py).
+__init__.py에서 블루프린트를 등록합니다.
+models/: AI 모델 관련 코드를 분리하여 관리합니다.
+각 AI 모델별로 모델 파일을 생성합니다 (model1.py, model2.py).
+모델 로딩, 추론 등의 로직을 구현합니다.
+utils/: 공통으로 사용되는 유틸리티 함수나 클래스를 정의합니다.
+config.py: 애플리케이션 설정을 관리합니다.
+tests/: 단위 테스트, 통합 테스트 등을 저장합니다.
+각 AI 모델별로 테스트 파일을 생성합니다 (test_model1.py, test_model2.py).
+venv/: 가상 환경 디렉토리입니다.
+requirements.txt: 프로젝트에 필요한 패키지 목록을 저장합니다.
+run.py: Flask 애플리케이션을 실행하는 스크립트입니다.
