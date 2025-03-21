@@ -1,0 +1,60 @@
+tags:
+  - Face Registration
+summary: 얼굴 각도별 등록 API
+description: |
+  사용자의 얼굴 이미지를 각도별(FRONT, LEFT, RIGHT)로 등록합니다.  
+  세 각도 등록 완료 시 외부 서버(/members/sampleImage)로 vector 데이터를 전송합니다.  
+  클라이언트는 Authorization 헤더에 access token을 포함해야 합니다.
+consumes:
+  - multipart/form-data
+parameters:
+  - name: Authorization
+    in: header
+    required: true
+    type: string
+    description: 액세스 토큰 (Bearer {token} 형식)
+
+  - name: angle_type
+    in: formData
+    required: true
+    type: string
+    enum: [FRONT, LEFT, RIGHT]
+    description: 얼굴 각도 (FRONT / LEFT / RIGHT)
+
+  - name: image
+    in: formData
+    required: true
+    type: file
+    description: 얼굴 이미지 파일
+
+responses:
+  200:
+    description: 등록 성공
+    examples:
+      application/json:
+        success: true
+        angle_type: FRONT
+        registered_angles: [FRONT, LEFT, RIGHT]
+        all_angles_completed: true
+        external_sync: success
+
+  400:
+    description: 잘못된 요청 (angle_type 누락, 얼굴 신뢰도 낮음 등)
+    examples:
+      application/json:
+        success: false
+        error: "Face confidence too low: 0.61"
+
+  401:
+    description: 인증 실패 (Authorization 헤더 누락 또는 잘못됨)
+    examples:
+      application/json:
+        success: false
+        error: "Missing or invalid access token"
+
+  500:
+    description: 서버 내부 오류
+    examples:
+      application/json:
+        success: false
+        error: "Unexpected error occurred"
