@@ -1,17 +1,17 @@
 from flask import Flask
 from flasgger import Swagger
-from .routes.register import model1_bp
 from .config import Config
+from .swagger_config import SWAGGER_TEMPLATE, SWAGGER_CONFIG
+from .blueprints import blueprints
 
 def create_app():
     app = Flask(__name__)
-
     app.config.from_object(Config)
 
-    # Swagger 설정
-    swagger = Swagger(app)
+    app.config['SWAGGER'] = SWAGGER_CONFIG
+    Swagger(app, template=SWAGGER_TEMPLATE)
 
-    # 블루프린트 등록
-    app.register_blueprint(model1_bp, url_prefix='')
+    for bp, prefix in blueprints:
+        app.register_blueprint(bp, url_prefix=prefix)
 
     return app

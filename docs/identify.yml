@@ -1,8 +1,8 @@
 ---
 tags:
   - Face API
-summary: 얼굴 각도별 이미지 등록
-description: "사용자의 얼굴 이미지를 각도별(FRONT, LEFT, RIGHT)로 등록하여 벡터 추출 및 외부 서버로 전송합니다."
+summary: "얼굴 이미지로 인물 식별"
+description: "얼굴 이미지를 기반으로 공유 그룹 내 등록된 인물들과 유사도를 비교하여 가장 가까운 인물을 식별합니다."
 parameters:
   - in: formData
     name: image
@@ -10,11 +10,10 @@ parameters:
     required: true
     description: "얼굴 이미지 파일 (jpg, png 등)"
   - in: formData
-    name: angle_type
+    name: shareGroupId
     type: string
     required: true
-    enum: [FRONT, LEFT, RIGHT]
-    description: "얼굴 각도 구분"
+    description: "벡터 비교 대상이 되는 공유 그룹 ID"
 
 consumes:
   - multipart/form-data
@@ -26,7 +25,7 @@ security:
 
 responses:
   200:
-    description: 등록 결과 반환
+    description: 식별 결과 반환
   400:
     description: 잘못된 요청
   401:
