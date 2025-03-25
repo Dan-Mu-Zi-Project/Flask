@@ -1,0 +1,15 @@
+version: 0.0
+os: linux
+
+files:
+  - source: /
+    destination: /home/ubuntu/jonghun
+permissions:
+  - object: /home/ubuntu/jonghun/
+    owner: ubuntu
+    group: ubuntu
+hooks:
+  AfterInstall:
+    - location: scripts/deploy.sh
+      timeout: 60
+      runas: ubuntu
