@@ -35,9 +35,9 @@ jobs:
 
       - name: Create .env file
         run: |
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_PRIVATE_ACCESS_KEY: ${{ secrets.AWS_PRIVATE_ACCESS_KEY }}
-          EXTERNAL_SERVER_URL: ${{ secrets.EXTERNAL_SERVER_URL }}
+          echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" > .env
+          echo "AWS_PRIVATE_ACCESS_KEY=${{ secrets.AWS_PRIVATE_ACCESS_KEY }}" >> .env
+          echo "EXTERNAL_SERVER_URL=${{ secrets.EXTERNAL_SERVER_URL }}" >> .env
 
       - name: Make Zip File
         run: |
