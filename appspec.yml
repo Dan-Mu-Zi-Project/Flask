@@ -7,12 +7,14 @@ files:
 
 permissions:
   - object: /home/ubuntu/flask
+    pattern: "**"
     owner: ubuntu
     group: ubuntu
     mode: 755
     type:
-      - directory
       - file
+      - directory
+
 
 hooks:
   AfterInstall:

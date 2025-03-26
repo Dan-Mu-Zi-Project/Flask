@@ -20,8 +20,10 @@ echo ">> Load .env if exists"
 
 echo ">> Setting up virtualenv if missing"
 if [ ! -d "venv" ]; then
-  python3 -m venv venv || echo "❌ venv 생성 실패!"
+  echo "🧱 가상환경 생성 중..."
+  python3 -m venv venv || (echo "❌ venv 생성 실패" && exit 1)
 fi
+
 
 echo ">> Activating venv"
 source venv/bin/activate
