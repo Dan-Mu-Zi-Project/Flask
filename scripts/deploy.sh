@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-set -e  # 실패 시 즉시 종료
 set -x  # 실행되는 명령어 로그 출력
 
 REPOSITORY=/home/ubuntu/flask
