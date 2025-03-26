@@ -3,9 +3,9 @@ os: linux
 
 files:
   - source: /
-    destination: /home/ubuntu/jonghun
+    destination: /home/ubuntu/flask
 permissions:
-  - object: /home/ubuntu/jonghun/
+  - object: /home/ubuntu/flask/
     owner: ubuntu
     group: ubuntu
 hooks:
