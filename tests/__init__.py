@@ -1,1 +1,1 @@
-print("CICD TEST")
+print("서버 용량 확보 후 CICD 재시도")
