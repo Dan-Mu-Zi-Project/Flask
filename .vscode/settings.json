@@ -1,5 +1,8 @@
 {
+    "python.autoComplete.extraPaths": [
+      "./venv/src/deepface"
+    ],
     "python.analysis.extraPaths": [
-        "./app/lib/deepface"
+      "./venv/src/deepface"
     ]
-}
+  }
