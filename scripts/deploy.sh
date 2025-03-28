@@ -40,6 +40,8 @@ source venv/bin/activate || (echo "❌ 가상환경 활성화 실패" && exit 1)
 echo "📦 Installing requirements"
 pip install -r requirements.txt || (echo "❌ requirements 설치 실패" && exit 1)
 
+sudo systemctl restart myflask
+
 # 선택적으로 Flask 실행
 # echo "🚀 Starting Flask app"
 # export FLASK_APP=app.py
