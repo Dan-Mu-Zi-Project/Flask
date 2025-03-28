@@ -19,4 +19,4 @@ class DevelopmentConfig(Config):
 class ProductionConfig(Config):
     DEBUG = False
     ENV = "production"
-    SWAGGER_ENABLED = False
+    SWAGGER_ENABLED = True
