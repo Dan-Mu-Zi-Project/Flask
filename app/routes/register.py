@@ -9,6 +9,7 @@ import time
 from app.utils.api_helpers import build_external_url
 from app.utils.face_utils import extract_face_embedding
 from app.utils.timer import time_function
+import traceback
 
 register_buffer = {}
 
@@ -121,6 +122,7 @@ def register():
         return jsonify(response_payload)
 
     except Exception as e:
+        traceback.print_exc()
         return jsonify({"success": False, "error": str(e)}), 500
 
 

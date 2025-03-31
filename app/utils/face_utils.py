@@ -11,11 +11,14 @@ def extract_face_embedding(image_bytes):
     if img is None:
         raise ValueError("Invalid image data.")
 
-    result = DeepFace.represent(
-        img_path=img,
-        model_name=FACE_RECONGITION_MODEL,
-        detector_backend=FACE_DETECTION_MODEL,
-        enforce_detection=True
-    )
+    try:
+        result = DeepFace.represent(
+            img_path=img,
+            model_name=FACE_RECONGITION_MODEL,
+            detector_backend=FACE_DETECTION_MODEL,
+            enforce_detection=True
+        )
+    except Exception as e:
+        raise ValueError(f"Face detection failed: {str(e)}")
 
-    return result[0]
+    return result

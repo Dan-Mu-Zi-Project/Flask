@@ -7,6 +7,7 @@ from scipy.spatial.distance import cosine
 from app.utils.api_helpers import build_external_url
 from app.utils.face_utils import extract_face_embedding
 from app.utils.timer import time_function
+import traceback
 
 identify_bp = Blueprint("identify_bp", __name__)
 
@@ -37,7 +38,14 @@ def identify_person():
 
     try:
         face_data = extract_face_embedding(file.read())
-        query_vector = face_data["embedding"]
+
+        if not isinstance(face_data, list) or not isinstance(face_data[0], dict):
+            return jsonify({"success": False, "error": "Invalid face data format"}), 500
+
+        if not face_data or len(face_data) == 0:
+            return jsonify({"success": False, "error": "No face detected"}), 400
+
+        query_vector = face_data[0]["embedding"]
 
         resolved_path = END_POINT.replace("{shareGroupId}", share_group_id)
         EXTERNAL_API_URL = build_external_url(resolved_path)
@@ -88,4 +96,5 @@ def identify_person():
             })
 
     except Exception as e:
+        traceback.print_exc()
         return jsonify({"success": False, "error": str(e)}), 500
