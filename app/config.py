@@ -6,6 +6,7 @@ load_dotenv()
 
 class Config:
     EXTERNAL_SERVER_URL = os.getenv("EXTERNAL_SERVER_URL", "http://localhost:8081")
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
     SWAGGER_ENABLED = False
     DEBUG = False
     TESTING = False

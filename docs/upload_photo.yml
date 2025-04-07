@@ -1,38 +1,95 @@
 ---
 tags:
   - Face Recognition
-summary: 얼굴 감지 및 Presigned URL 요청
-description: 얼굴을 감지한 뒤 presigned URL을 요청합니다.
+summary: 단체 사진 업로드 및 얼굴 인식 후 등록
+description: >
+  단체 사진을 업로드하여 얼굴 인식 및 임베딩 추출 후,
+  공유 그룹에 등록된 얼굴 벡터와 비교하여 매칭된 사람들을 자동 등록합니다.
+  이미지 파일은 Presigned URL을 통해 S3에 업로드되며,
+  최종 등록은 DB 서버의 `/photos/{shareGroupId}`로 전송됩니다.
 consumes:
   - multipart/form-data
-produces:
-  - application/json
 parameters:
   - in: formData
     name: image
     type: file
     required: true
-    description: 업로드할 얼굴 이미지
+    description: 단체 사진 파일 (jpg/jpeg/png)
   - in: formData
-    name: photoName
+    name: shareGroupId
+    type: integer
+    required: true
+    description: 공유 그룹 ID
+  - in: formData
+    name: location
     type: string
     required: true
-    description: presigned URL을 요청할 파일 이름
+    description: 촬영 위치 정보
+  - in: formData
+    name: takeAt
+    type: string
+    required: true
+    description: 촬영 시간 (예 2025-04-01T12:00:00)
+
 security:
   - Bearer: []
+
 responses:
   200:
-    description: 얼굴 분석 및 URL 요청 결과
+    description: 사진 등록 성공
     schema:
       type: object
       properties:
-        result:
+        message:
+          type: string
+        matchedProfiles:
           type: array
-          description: 얼굴 임베딩 결과 리스트
-        presigned_url_response:
+          items:
+            type: object
+            properties:
+              memberId:
+                type: integer
+              profileId:
+                type: integer
+              name:
+                type: string
+              angleType:
+                type: string
+              distance:
+                type: number
+        imageUrl:
+          type: string
+        uploadResult:
           type: object
-          description: presigned URL 응답
+          properties:
+            status:
+              type: integer
+            code:
+              type: string
+            data:
+              type: object
+              properties:
+                uploaderProfileId:
+                  type: integer
+                uploadPhotoList:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      photoId:
+                        type: integer
+                      imageUrl:
+                        type: string
+                      profileIdList:
+                        type: array
+                        items:
+                          type: integer
+
   400:
-    description: 요청 형식 오류
+    description: 잘못된 요청
+  401:
+    description: 인증 실패
+  404:
+    description: 매칭 실패
   500:
-    description: 서버 오류
+    description: 서버 내부 오류

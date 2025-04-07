@@ -2,6 +2,7 @@ from deepface import DeepFace
 import cv2
 import numpy as np
 from scipy.spatial.distance import cosine
+import json
 
 from app.models.deepface_loader import FACE_DETECTION_MODEL, FACE_RECONGITION_MODEL
 
@@ -14,12 +15,8 @@ def extract_face_embedding(image_input):
     if isinstance(image_input, bytes):
         image_array = np.frombuffer(image_input, np.uint8)
         img = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
-        detector_backend = FACE_DETECTION_MODEL
-        enforce_detection = True
     elif isinstance(image_input, np.ndarray):
         img = image_input
-        detector_backend = "skip"
-        enforce_detection = False
     else:
         raise ValueError("Unsupported image input type")
 
@@ -36,14 +33,14 @@ def extract_face_embedding(image_input):
         result = DeepFace.represent(
             img_path=img,
             model_name=FACE_RECONGITION_MODEL,
-            detector_backend=detector_backend,
-            enforce_detection=enforce_detection
+            detector_backend=FACE_DETECTION_MODEL,
+            align = True,
+            expand_percentage = 30,
         )
     except Exception as e:
         raise ValueError(f"Face embedding failed: {str(e)}")
 
     return result
-
 
 def extract_multiple_face_embeddings(image_bytes):
     """
@@ -61,7 +58,7 @@ def extract_multiple_face_embeddings(image_bytes):
             detector_backend=FACE_DETECTION_MODEL,
             enforce_detection=True,
             align=True,
-            expand_percentage=0,
+            expand_percentage=30,
             grayscale=False,
             color_face="rgb",
             normalize_face=True,
@@ -76,6 +73,7 @@ def extract_multiple_face_embeddings(image_bytes):
         face_rgb = face_obj.get("face")
         facial_area = face_obj.get("facial_area", {})
         confidence = face_obj.get("confidence", None)
+        print("[FACE SIZE]", facial_area["w"], facial_area["h"])
 
         try:
             embedding_result = extract_face_embedding(face_rgb)
@@ -98,48 +96,63 @@ def extract_multiple_face_embeddings(image_bytes):
 
 
 def find_best_match(query_vector, share_group_response):
-    """
-    query_vector: List[float]
-    share_group_response: API 응답(JSON dict)
-    """
     COSINE_THRESHOLD = 0.35
 
     best_matches = []
 
     members = share_group_response.get("data", {}).get("memberEmbeddingList", [])
     
+    print(f"[DEBUG] 🔍 Query vector length: {len(query_vector)}")
+
     for member in members:
         member_id = member.get("memberId")
         profile_id = member.get("profileId")
         name = member.get("name")
         embedding_vectors = member.get("embeddingVectorList", [])
 
+        print(f"\n[DEBUG] 👤 Checking member: {name} (ID: {profile_id})")
+
         min_distance = float("inf")
         best_match = None
 
         for item in embedding_vectors:
+            angle_type = item.get("angleType")
             vector_str = item.get("vector")
             if not vector_str:
+                print(f"[SKIP] vector is empty for angle {angle_type}")
                 continue
             try:
                 candidate_vector = json.loads(vector_str)
+                print(f"[VECTOR RAW] angle={angle_type}, first 5: {vector_str[:30]}")
+                print(f"[VECTOR PARSED] len={len(candidate_vector)}")
+
                 distance = cosine(query_vector, candidate_vector)
+                print(f"[DIST] member: {name}, angle: {angle_type}, distance: {distance}")
+                print(f"[CHECK] angle: {angle_type}, distance: {round(distance, 4)}")
+
                 if distance < min_distance:
                     min_distance = distance
                     best_match = {
                         "memberId": member_id,
                         "profileId": profile_id,
                         "name": name,
-                        "angleType": item.get("angleType"),
+                        "angleType": angle_type,
                         "distance": round(distance, 4)
                     }
-            except Exception:
+            except Exception as e:
+                print(f"[ERROR] failed to parse/compare vector: {e}")
                 continue
 
-        if best_match and best_match["distance"] < COSINE_THRESHOLD:
-            best_matches.append(best_match)
+        if best_match:
+            print(f"[RESULT] Best distance: {best_match['distance']}")
+            if best_match["distance"] < COSINE_THRESHOLD:
+                print(f"[MATCH ✅] added to result")
+                best_matches.append(best_match)
+            else:
+                print(f"[MATCH ❌] distance too high (>{COSINE_THRESHOLD})")
+        else:
+            print("[RESULT] No valid match for this member")
 
-    # 거리 기준 오름차순 정렬
     best_matches.sort(key=lambda x: x["distance"])
-
+    print(f"\n[DEBUG] ✅ Total valid matches: {len(best_matches)}")
     return best_matches

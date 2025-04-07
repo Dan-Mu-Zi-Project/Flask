@@ -6,6 +6,7 @@ import logging
 logger = setup_logger(__name__, logging.DEBUG)
 
 FACE_RECONGITION_MODEL = "Facenet512"
+# FACE_RECONGITION_MODEL = "ArcFace"
 FACE_DETECTION_MODEL = "yolov11n"
 
 logger.debug("🧠 DeepFace 모델 로딩 중...")

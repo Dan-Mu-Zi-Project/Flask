@@ -1,0 +1,64 @@
+---
+tags:
+  - 사진 피드백
+summary: 단체 사진 자동 피드백 + 음성 생성
+description: 
+  업로드된 단체 사진을 분석하여 JSON 피드백과 음성(mp3) 다운로드 경로를 제공합니다.
+consumes:
+  - multipart/form-data
+produces:
+  - application/json
+parameters:
+  - in: formData
+    name: image
+    type: file
+    required: true
+    description: 분석할 단체 사진 (JPEG 또는 PNG)
+
+responses:
+  200:
+    description: 분석 결과 및 음성 다운로드 URL
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            feedback:
+              type: object
+              properties:
+                face_count:
+                  type: integer
+                  example: 5
+                face_details:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      index:
+                        type: integer
+                        example: 0
+                      eyes_closed:
+                        type: boolean
+                        example: false
+                      focus_ok:
+                        type: boolean
+                        example: true
+                composition:
+                  type: string
+                  example: "인물들이 고르게 배치되어 균형 잡힌 구도입니다."
+                lighting_evaluation:
+                  type: string
+                  example: "자연광이 적절히 들어와 인물의 얼굴이 잘 보입니다."
+                overall_score:
+                  type: integer
+                  example: 87
+                suggestions:
+                  type: string
+                  example: "- 배경 조명이 조금 어두워요\n- 다양한 표정을 시도해보세요"
+            audio_download_url:
+              type: string
+              example: /feedback_photo/download_audio?path=/tmp/tmpabcd1234.mp3
+  400:
+    description: 이미지 누락 또는 잘못된 요청
+  500:
+    description: GPT 또는 음성 생성 중 내부 오류
