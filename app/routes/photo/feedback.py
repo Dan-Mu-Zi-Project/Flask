@@ -9,7 +9,7 @@ import traceback
 from pathlib import Path
 from app.config import Config
 
-feedback_photo_bp = Blueprint("feedback_photo_bp", __name__)
+feedback_bp = Blueprint("feedback", __name__)
 client = openai.OpenAI(api_key=Config.OPENAI_API_KEY)
 
 def get_prompt():
@@ -44,8 +44,8 @@ def get_prompt():
     )
 
 
-@feedback_photo_bp.route("/feedback_photo", methods=["POST"])
-@swag_from(os.path.join(os.path.dirname(__file__), "../../docs/feedback_photo.yml"))
+@feedback_bp.route("/feedback", methods=["POST"])
+@swag_from(os.path.join(os.path.dirname(__file__), "../../../docs/feedback.yml"))
 def photo_feedback():
     image_file = request.files.get("image")
     if not image_file:
@@ -68,7 +68,7 @@ def photo_feedback():
         cleaned_text = text_content.strip().removeprefix("```json").removesuffix("```").strip()
         parsed = json.loads(cleaned_text)
 
-        tts_text = "단체사진 피드백을 드릴게요. " + parsed["suggestions"].replace("\n", " ")
+        tts_text = parsed["suggestions"].replace("\n", " ")
 
         speech_path = Path(tempfile.mktemp(suffix=".mp3"))
         with client.audio.speech.with_streaming_response.create(
@@ -87,10 +87,8 @@ def photo_feedback():
     @response.call_on_close
     def cleanup():
         try:
-            print(f"🧹 Deleting temp file: {speech_path}")
             speech_path.unlink()
         except:
-            print(f"⚠️ 삭제 실패: {e}")
             pass
 
     return response

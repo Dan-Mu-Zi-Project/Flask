@@ -15,7 +15,7 @@ END_POINT = "/shareGroups/{shareGroupId}/vector"
 COSINE_THRESHOLD = 0.35
 
 @identify_bp.route("/identify", methods=["POST"])
-@swag_from(os.path.join(os.path.dirname(__file__), "../../docs/identify.yml"))
+@swag_from(os.path.join(os.path.dirname(__file__), "../../../docs/identify.yml"))
 @time_function("Identify")
 def identify_person():
     if "image" not in request.files or "shareGroupId" not in request.form:

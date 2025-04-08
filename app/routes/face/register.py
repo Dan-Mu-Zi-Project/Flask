@@ -22,7 +22,7 @@ register_bp = Blueprint("register_bp", __name__)
 
 
 @register_bp.route("/register", methods=["POST"])
-@swag_from(os.path.join(os.path.dirname(__file__), "../../docs/register.yml"))
+@swag_from(os.path.join(os.path.dirname(__file__), "../../../docs/register.yml"))
 @time_function("Register")
 def register():
     gc_expired_entries()
@@ -137,28 +137,3 @@ def gc_expired_entries():
 
     for key in expired_keys:
         register_buffer.pop(key, None)
-
-
-@register_bp.route("/register/debug", methods=["GET"])
-def debug_register_buffer():
-    from datetime import datetime
-
-    debug_data = {}
-    for user_token_id, user_data in register_buffer.items():
-        created_at_ts = user_data.get("_created_at")
-        created_at_str = (
-            datetime.fromtimestamp(created_at_ts).isoformat()
-            if created_at_ts
-            else "N/A"
-        )
-
-        angle_data = {k: v for k, v in user_data.items() if not k.startswith("_")}
-
-        debug_data[user_token_id] = {
-            "created_at": created_at_str,
-            "angles_registered": list(angle_data.keys()),
-        }
-
-    return jsonify(
-        {"success": True, "buffer_summary": debug_data, "total_users": len(debug_data)}
-    )

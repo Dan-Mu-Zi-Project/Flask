@@ -7,11 +7,10 @@ import uuid
 from app.utils.face_utils import extract_multiple_face_embeddings, find_best_match
 from app.utils.upload_utils import request_group_face_vectors, request_presigned_url, upload_image_to_presigned_url, finalize_photo_upload
 
-upload_photo_bp = Blueprint("debug_bp", __name__)
+upload_bp = Blueprint("debug_bp", __name__)
 
-
-@upload_photo_bp.route("/upload_photo", methods=["POST"])
-@swag_from(os.path.join(os.path.dirname(__file__), "../../docs/upload_photo.yml"))
+@upload_bp.route("/upload", methods=["POST"])
+@swag_from(os.path.join(os.path.dirname(__file__), "../../../docs/upload.yml"))
 def upload_photo():
     try:
         if "image" not in request.files:

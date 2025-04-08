@@ -1,0 +1,107 @@
+---
+tags:
+  - Photo Upload API
+
+summary: 단체사진 업로드 및 인물 자동 식별
+description: |
+  단체사진 이미지를 업로드하면, 얼굴 임베딩을 추출하고 공유 그룹 내 인물 벡터와 비교하여
+  가장 유사한 인물을 자동으로 식별합니다. 이후 이미지 파일을 Presigned URL을 통해 업로드하고,
+  최종적으로 사진 정보를 서버에 등록합니다.
+
+  ➕ 이 API는 사진 분석, 업로드, 태깅까지 **전체 과정을 한 번에 수행**합니다.
+
+consumes:
+  - multipart/form-data
+produces:
+  - application/json
+
+security:
+  - Bearer: []
+
+parameters:
+  - in: formData
+    name: image
+    type: file
+    required: true
+    description: |
+      얼굴이 포함된 단체사진 이미지 파일.
+      JPEG 또는 PNG 형식을 지원합니다.
+      예: "group_photo.jpg"
+
+  - in: formData
+    name: shareGroupId
+    type: integer
+    required: true
+    description: |
+      비교 대상이 되는 공유 그룹의 ID입니다.
+
+  - in: formData
+    name: location
+    type: string
+    required: true
+    description: |
+      사진이 촬영된 장소에 대한 설명 또는 주소입니다.
+      예: "서울시 마포구 합정동"
+
+  - in: formData
+    name: takeAt
+    type: string
+    required: true
+    description: |
+      사진이 촬영된 시각입니다.
+      ISO 8601 형식을 권장합니다.  
+      예: "2025-04-08T14:30:00"
+
+responses:
+  200:
+    description: ✅ 사진 업로드 및 자동 태깅 성공
+    examples:
+      application/json:
+        {
+          "message": "✅ 사진 업로드 및 등록 완료",
+          "matchedProfiles": [
+            {
+              "memberId": "123",
+              "profileId": "abc123",
+              "name": "홍길동",
+              "distance": 0.2732
+            }
+          ],
+          "imageUrl": "https://your-bucket.s3.amazonaws.com/uploaded-photo.jpg",
+          "uploadResult": {
+            "success": true,
+            "photoId": "xyz456"
+          }
+        }
+
+  400:
+    description: ❌ 잘못된 요청 - 이미지 또는 필드 누락, 얼굴 없음 등
+    examples:
+      application/json:
+        {
+          "error": "Missing required form fields"
+        }
+
+  401:
+    description: 🔒 인증 오류 - Authorization 헤더 누락 또는 유효하지 않음
+    examples:
+      application/json:
+        {
+          "error": "Missing or invalid Authorization header"
+        }
+
+  404:
+    description: ⚠️ 얼굴은 인식됐으나 유사한 인물이 없음
+    examples:
+      application/json:
+        {
+          "error": "No similar profiles found"
+        }
+
+  500:
+    description: ⚠️ 서버 내부 오류 - 벡터 요청, S3 업로드, 최종 등록 실패 등
+    examples:
+      application/json:
+        {
+          "error": "Internal Server Error: S3 upload failed"
+        }

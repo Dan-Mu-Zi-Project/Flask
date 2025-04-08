@@ -1,20 +1,14 @@
 ---
 tags:
   - Face API
-summary: 얼굴 각도별 이미지 등록
-description: "사용자의 얼굴 이미지를 각도별(FRONT, LEFT, RIGHT)로 등록하여 벡터 추출 및 외부 서버로 전송합니다."
-parameters:
-  - in: formData
-    name: image
-    type: file
-    required: true
-    description: "얼굴 이미지 파일 (jpg, png 등)"
-  - in: formData
-    name: angle_type
-    type: string
-    required: true
-    enum: [FRONT, LEFT, RIGHT]
-    description: "얼굴 각도 구분"
+
+summary: 얼굴 이미지 등록 (정면, 좌측, 우측)
+description: |
+  얼굴 이미지를 업로드하고, 해당 이미지가 어느 각도인지(`FRONT`, `LEFT`, `RIGHT`) 명시하여 등록합니다.
+  각도를 하나씩 등록하며, 모든 각도(3종류)가 모이면 외부 API(`/members/sampleImage`)로 자동 전송됩니다.
+
+  각 요청은 사용자의 액세스 토큰(access token)을 기반으로 구분되며,
+  최대 90초 내에 모든 각도를 등록해야 최종 등록이 완료됩니다.
 
 consumes:
   - multipart/form-data
@@ -24,12 +18,67 @@ produces:
 security:
   - Bearer: []
 
+parameters:
+  - in: formData
+    name: image
+    type: file
+    required: true
+    description: |
+      얼굴 이미지 파일을 업로드합니다.
+      JPEG 또는 PNG 형식을 지원합니다.
+      예: "face_front.jpg"
+
+  - in: formData
+    name: angle_type
+    type: string
+    required: true
+    description: |
+      업로드하는 이미지의 얼굴 각도를 지정합니다.
+      아래 옵션 중 하나를 선택하세요.
+    enum:
+      - FRONT
+      - LEFT
+      - RIGHT
+
 responses:
   200:
-    description: 등록 결과 반환
+    description: |
+      ✅ 얼굴 이미지 등록 성공. 현재 등록된 각도 목록 및 최종 등록 여부를 반환합니다.
+    examples:
+      application/json:
+        {
+          "success": true,
+          "angle_type": "LEFT",
+          "registered_angles": ["FRONT", "LEFT"],
+          "all_angles_completed": false
+        }
+
   400:
-    description: 잘못된 요청
+    description: |
+      ❌ 잘못된 요청. 누락된 필드, 유효하지 않은 각도, 낮은 얼굴 인식 신뢰도 등이 원인일 수 있습니다.
+    examples:
+      application/json:
+        {
+          "success": false,
+          "error": "Invalid or missing angle_type"
+        }
+
   401:
-    description: 인증 오류
+    description: |
+      🔒 인증 오류. Authorization 헤더가 없거나 유효하지 않을 경우 발생합니다.
+    examples:
+      application/json:
+        {
+          "success": false,
+          "error": "Missing or invalid access token"
+        }
+
   500:
-    description: 서버 오류
+    description: |
+      ⚠️ 서버 내부 오류. 얼굴 추출 실패, 외부 API 호출 실패 등으로 인해 발생할 수 있습니다.
+    examples:
+      application/json:
+        {
+          "success": false,
+          "error": "Face confidence too low: 0.7234"
+        }

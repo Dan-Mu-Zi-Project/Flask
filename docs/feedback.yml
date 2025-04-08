@@ -1,0 +1,53 @@
+---
+tags:
+  - Photo Feedback API
+
+summary: 단체사진 피드백 (GPT + 음성 응답)
+description: |
+  단체사진 이미지를 업로드하면, `GPT-4o Vision` 모델을 사용하여 사진을 분석합니다.
+
+  분석 결과 중 조언(`suggestion`) 항목을 음성으로 변환하여 **mp3 포맷**으로 응답합니다.  
+  이 API는 **오디오 스트리밍**을 반환하므로, Swagger UI에서는 직접 재생되지는 않습니다.
+
+consumes:
+  - multipart/form-data
+produces:
+  - application/json
+  - audio/mpeg
+
+parameters:
+  - in: formData
+    name: image
+    type: file
+    required: true
+    description: |
+      단체사진 이미지 파일을 업로드합니다.
+      JPEG 또는 PNG 형식을 지원합니다.
+      예: "group_photo.jpg"
+
+responses:
+  200:
+    description: |
+      ✅ 사진 피드백 생성 성공 (mp3 오디오 반환)
+      응답은 audio/mpeg 타입이며, 단체사진에 대한 음성 피드백입니다.
+    schema:
+      type: file
+
+  400:
+    description: |
+      ❌ 잘못된 요청. 이미지가 포함되지 않았거나 잘못된 형식입니다.
+    examples:
+      application/json:
+        {
+          "error": "No image uploaded"
+        }
+
+  500:
+    description: |
+      ⚠️ 서버 내부 처리 실패. GPT Vision, 음성 생성, JSON 파싱 등 문제 발생 가능.
+    examples:
+      application/json:
+        {
+          "error": "처리 실패",
+          "message": "OpenAI API 오류 또는 JSON 파싱 실패 등 상세 메시지"
+        }

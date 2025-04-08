@@ -1,19 +1,13 @@
 ---
 tags:
   - Face API
-summary: "얼굴 이미지로 인물 식별"
-description: "얼굴 이미지를 기반으로 공유 그룹 내 등록된 인물들과 유사도를 비교하여 가장 가까운 인물을 식별합니다."
-parameters:
-  - in: formData
-    name: image
-    type: file
-    required: true
-    description: "얼굴 이미지 파일 (jpg, png 등)"
-  - in: formData
-    name: shareGroupId
-    type: string
-    required: true
-    description: "벡터 비교 대상이 되는 공유 그룹 ID"
+
+summary: 얼굴 이미지 기반 인물 식별
+description: |
+  업로드된 얼굴 이미지에서 임베딩 벡터를 추출하고, 지정한 공유 그룹(`shareGroupId`) 내 등록된 인물들과 비교하여
+  가장 유사한 인물을 찾아 반환합니다.
+
+  코사인 유사도(Cosine Similarity)를 활용하며, 임계값(COSINE_THRESHOLD)을 기준으로 유사 여부를 판단합니다.
 
 consumes:
   - multipart/form-data
@@ -23,12 +17,67 @@ produces:
 security:
   - Bearer: []
 
+parameters:
+  - in: formData
+    name: image
+    type: file
+    required: true
+    description: |
+      얼굴 이미지 파일을 업로드합니다.
+      JPEG 또는 PNG 형식을 지원합니다.
+      예: "face.jpg"
+  
+  - in: formData
+    name: shareGroupId
+    type: string
+    required: true
+    description: |
+      얼굴 벡터를 비교할 공유 그룹의 ID입니다.
+      이 ID에 해당하는 그룹의 벡터 리스트와 업로드된 얼굴을 비교합니다.
+
 responses:
   200:
-    description: 식별 결과 반환
+    description: |
+      ✅ 인물 식별 성공 여부와 유사도 결과를 포함한 응답을 반환합니다.
+    examples:
+      application/json:
+        {
+          "success": true,
+          "identified": true,
+          "matched": {
+            "memberId": "123",
+            "profileId": "abc",
+            "name": "홍길동",
+            "distance": 0.2112
+          }
+        }
+
   400:
-    description: 잘못된 요청
+    description: |
+      ❌ 잘못된 요청. 필수 필드 누락 또는 유효하지 않은 파일 형식일 수 있습니다.
+    examples:
+      application/json:
+        {
+          "success": false,
+          "error": "Missing image or shareGroupId"
+        }
+
   401:
-    description: 인증 오류
+    description: |
+      🔒 인증 오류. Authorization 헤더에 토큰이 없거나 잘못된 경우 발생합니다.
+    examples:
+      application/json:
+        {
+          "success": false,
+          "error": "Missing access token"
+        }
+
   500:
-    description: 서버 오류
+    description: |
+      ⚠️ 서버 내부 오류. 얼굴 추출 실패, 외부 API 호출 실패 등으로 인해 발생할 수 있습니다.
+    examples:
+      application/json:
+        {
+          "success": false,
+          "error": "No face detected"
+        }
