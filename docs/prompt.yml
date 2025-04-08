@@ -1,0 +1,62 @@
+---
+tags:
+  - Photo Feedback API
+
+summary: 프롬프트 실험용 단체사진 분석 (JSON만 반환)
+description: |
+  업로드된 단체사진 이미지를 GPT-4o Vision 모델로 분석하고,  
+  구도, 조명, 얼굴 상태 등 항목을 기반으로 한 피드백을 **JSON 객체**로 반환합니다.
+
+  이 API는 **음성 변환 없이 결과만 확인하고자 할 때** 사용합니다.  
+  프롬프트 튜닝 실험이나 개발 테스트용으로 활용됩니다.
+
+consumes:
+  - multipart/form-data
+produces:
+  - application/json
+
+parameters:
+  - in: formData
+    name: image
+    type: file
+    required: true
+    description: |
+      평가할 단체사진 이미지 파일을 업로드합니다.
+      JPEG 또는 PNG 형식을 지원하며, 얼굴이 1명 이상 포함되어야 합니다.
+
+responses:
+  200:
+    description: ✅ 사진 피드백 생성 성공 (JSON 반환)
+    examples:
+      application/json:
+        {
+          "success": true,
+          "feedback": {
+            "face_count": 5,
+            "face_details": [
+              { "index": 0, "eyes_closed": false, "focus_ok": true },
+              { "index": 1, "eyes_closed": true, "focus_ok": false }
+            ],
+            "composition": "Three-point composition으로 안정적인 인물 배치.",
+            "lighting_evaluation": "자연광 중심이나 그림자가 약간 있음.",
+            "overall_score": 87,
+            "suggestions": "- 눈을 감지 않도록 촬영해 보세요\\n- 인물 간 간격을 살짝 넓혀 보세요"
+          }
+        }
+
+  400:
+    description: ❌ 이미지 누락
+    examples:
+      application/json:
+        {
+          "error": "No image uploaded"
+        }
+
+  500:
+    description: ⚠️ 내부 오류 (GPT 응답 파싱 실패 등)
+    examples:
+      application/json:
+        {
+          "success": false,
+          "error": "OpenAI 응답 오류 혹은 JSON 파싱 실패"
+        }
