@@ -22,7 +22,7 @@ SWAGGER_TEMPLATE = {
             "description": "사진 업로드, Presigned URL 처리, 인물 자동 태깅 기능을 제공합니다.",
         },
         {
-            "name": "Tast API",
+            "name": "Test API",
             "description": "테스트 기능으로 배포 서버에서 사용은 하지 않습니다.",
         },
     ],
