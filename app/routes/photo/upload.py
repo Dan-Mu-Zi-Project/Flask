@@ -23,10 +23,10 @@ def upload_photo():
         location = request.form.get("location", "").strip()
         take_at = request.form.get("takeAt", "").strip()
 
-        if not location:
-            location = "None"
-        if not take_at:
-            take_at = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        # if not location:
+        #     location = "None"
+        # if not take_at:
+        #     take_at = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
         auth_header = request.headers.get("Authorization")
         if not auth_header:

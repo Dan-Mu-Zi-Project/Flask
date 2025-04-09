@@ -31,8 +31,8 @@ def finalize_photo_upload(
             {
                 "imageUrl": photo_url,
                 "profileIdList": profile_id_list,
-                "location": location,
-                "takedAt": taked_at,
+                "location": location or None,
+                "takedAt": taked_at or None,
                 "width": width,
                 "height": height,
             }
