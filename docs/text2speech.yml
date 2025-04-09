@@ -1,0 +1,111 @@
+---
+tags:
+  - Test API
+
+summary: 텍스트 → 음성 변환 (TTS)
+description: |
+  입력된 텍스트를 선택한 음성 스타일과 모델로 음성(mp3 등)으로 변환합니다.  
+  다양한 voice 스타일과 포맷(mp3, wav 등)을 지원하며, 속도(speed)도 조절할 수 있습니다.
+
+  이 API는 OpenAI의 `audio.speech.with_streaming_response` 기능을 기반으로 동작합니다.
+
+consumes:
+  - multipart/form-data
+produces:
+  - audio/mpeg
+  - audio/wav
+  - audio/flac
+  - audio/aac
+  - audio/opus
+  - audio/pcm
+
+parameters:
+  - in: formData
+    name: model
+    type: string
+    required: true
+    enum:
+      - tts-1
+      - tts-1-hd
+      - gpt-4o-mini-tts
+    description: 사용할 음성 변환 모델입니다.
+
+  - in: formData
+    name: voice
+    type: string
+    required: true
+    enum:
+      - alloy
+      - ash
+      - ballad
+      - coral
+      - echo
+      - fable
+      - onyx
+      - nova
+      - sage
+      - shimmer
+    description: 사용할 음성 스타일입니다.
+
+  - in: formData
+    name: input
+    type: string
+    required: true
+    description: 음성으로 변환할 텍스트입니다.
+
+  - in: formData
+    name: response_format
+    type: string
+    required: false
+    enum:
+      - mp3
+      - opus
+      - aac
+      - flac
+      - wav
+      - pcm
+    description: 응답 오디오 포맷입니다. 기본값은 `mp3`입니다.
+
+  - in: formData
+    name: speed
+    type: number
+    format: float
+    required: false
+    minimum: 0.25
+    maximum: 4.0
+    default: 1.0
+    description: |
+      음성 재생 속도입니다. 기본값은 1.0이며  
+      `0.25` (매우 느림) ~ `4.0` (매우 빠름) 사이의 값을 허용합니다.
+  - in: formData
+    name: instructions
+    type: string
+    required: false
+    description: |
+      `tts-1, tts-1-hd` 사용 시 instructions는 `사용이 불가합니다.`
+      음성 변환 시 참고할 보조 설명 또는 지시사항입니다.
+      예: "부드러운 말투로 읽어줘", "강조해서 또박또박 말해줘"
+
+responses:
+  200:
+    description: ✅ 음성 파일 응답 (audio/*)
+    schema:
+      type: file
+
+  400:
+    description: ❌ 잘못된 요청 (모델, voice, input 누락 또는 speed 범위 초과 등)
+    examples:
+      application/json:
+        {
+          "success": false,
+          "error": "Speed must be between 0.25 and 4.0"
+        }
+
+  500:
+    description: ⚠️ 내부 오류 (OpenAI API 실패, 파일 스트리밍 실패 등)
+    examples:
+      application/json:
+        {
+          "success": false,
+          "error": "Streaming error"
+        }

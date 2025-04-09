@@ -1,5 +1,6 @@
 venv/
 src/
 .env
+app/routes/test/audio_result/
 
 **/__pycache__/

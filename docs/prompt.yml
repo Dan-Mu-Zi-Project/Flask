@@ -1,6 +1,6 @@
 ---
 tags:
-  - Photo Feedback API
+  - Test API
 
 summary: 프롬프트 실험용 단체사진 분석 (JSON만 반환)
 description: |
