@@ -37,7 +37,6 @@ SWAGGER_TEMPLATE = {
     "security": [{"Bearer": []}],
 }
 
-
 SWAGGER_CONFIG = {
     "uiversion": 3,
     "layout": "BaseLayout",

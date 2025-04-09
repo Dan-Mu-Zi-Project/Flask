@@ -107,3 +107,18 @@ def request_group_face_vectors(share_group_id: int, access_token: str):
         )
     except Exception as e:
         raise RuntimeError(f"공유 그룹 벡터 요청 중 예외 발생: {str(e)}")
+
+def get_current_share_group_id(token: str) -> int:
+    END_POINT = "/shareGroups/current"
+    EXTERNAL_API_URL = build_external_url(END_POINT)
+    url = EXTERNAL_API_URL
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    json_data = response.json()
+    
+    if "data" not in json_data or "shareGroupId" not in json_data["data"]:
+        raise ValueError("Invalid response format: missing shareGroupId")
+
+
+    return json_data["data"]["shareGroupId"]

@@ -3,9 +3,10 @@ from flasgger import swag_from
 import os
 import traceback
 import uuid
+from datetime import datetime
 
 from app.utils.face_utils import extract_multiple_face_embeddings, find_best_match
-from app.utils.upload_utils import request_group_face_vectors, request_presigned_url, upload_image_to_presigned_url, finalize_photo_upload
+from app.utils.upload_utils import request_group_face_vectors, request_presigned_url, upload_image_to_presigned_url, finalize_photo_upload, get_current_share_group_id
 
 upload_bp = Blueprint("debug_bp", __name__)
 
@@ -22,13 +23,21 @@ def upload_photo():
         location = request.form.get("location", "").strip()
         take_at = request.form.get("takeAt", "").strip()
 
-        if not share_group_id or not location or not take_at:
-            return jsonify({"error": "Missing required form fields"}), 400
+        if not location:
+            location = "None"
+        if not take_at:
+            take_at = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
         auth_header = request.headers.get("Authorization")
         if not auth_header:
             return jsonify({"error": "Missing or invalid Authorization header"}), 401
         access_token = auth_header.replace("Bearer ", "").strip()
+
+        if not share_group_id:
+            try:
+                share_group_id = get_current_share_group_id(access_token)
+            except Exception:
+                return jsonify({"error": "Failed to fetch shareGroupId"}), 400
 
         result = extract_multiple_face_embeddings(image_bytes)
         valid_embeddings = [r for r in result if "embedding" in r]
