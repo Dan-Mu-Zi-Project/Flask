@@ -76,7 +76,7 @@ def identify_person():
                             "memberId": member.get("memberId"),
                             "profileId": member.get("profileId"),
                             "name": member.get("name"),
-                            "distance": round(distance, 4)
+                            # "distance": round(distance, 4)
                         }
                 except Exception:
                     continue

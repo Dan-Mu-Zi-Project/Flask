@@ -32,16 +32,16 @@ def upload_photo():
 
         result = extract_multiple_face_embeddings(image_bytes)
         valid_embeddings = [r for r in result if "embedding" in r]
-        if not valid_embeddings:
-            return jsonify({"error": "No valid face embeddings detected"}), 400
+        # if not valid_embeddings:
+        #     return jsonify({"error": "No valid face embeddings detected"}), 400
 
         query_embedding = valid_embeddings[0]["embedding"]
         group_vector_response = request_group_face_vectors(share_group_id, access_token)
         best_matches = find_best_match(query_embedding, group_vector_response)
         profile_id_list = [match["profileId"] for match in best_matches]
 
-        if not profile_id_list:
-            return jsonify({"error": "No similar profiles found"}), 404
+        # if not profile_id_list:
+        #     return jsonify({"error": "No similar profiles found"}), 404
 
         filename = str(uuid.uuid4()) + image_file.filename
         presigned_response = request_presigned_url([filename], access_token)
