@@ -14,7 +14,7 @@ client = openai.OpenAI(api_key=Config.OPENAI_API_KEY)
 
 def get_prompt():
     return (
-        """
+              """
         너는 지금 친구들 사진을 찍어주는 중이야. 사진사 포지션이지.
         반말로, 친근하게 단체사진을 평가해 줘.\n\n
         아래 이미지를 분석한 결과를 아래 JSON 구조에 맞춰 오직 JSON 객체로만 출력해야해.
@@ -30,7 +30,14 @@ def get_prompt():
         
         1) face_count (int): 사진 속 사람(얼굴)의 총 개수\n
         2) face_details (array): 각 인물별 인덱스\n
-           - index (int): 왼쪽부터 0, 1, 2...\n
+           - index (int): 왼쪽부터 순서대로 인덱스 번호를 지정할 거야. (0번 부터)\n
+           - 인덱스 번호를 말할 때의 규칙을 알려줄게.
+             a. 0번 인덱스: 맨 왼쪽에 있는 너
+             b. 1번 인덱스: 왼쪽에서 두 번째로 있는 사람!
+             c. 2번 인덱스: 왼쪽에서 세 번째 있는 사람...
+             ...
+             z. 마지막 인덱스: 맨 오른쪽에 있는 사람
+           - 이런 식으로, 맨 왼쪽에서 몇 번째에 있는 사람 / 맨 오른쪽에서 몇 번째에 있는 사람 으로 불러줘.
         3) composition_1 (string): 단체사진에 나온 사람들의 얼굴을 한번에 묶은 box를 화면의 전체 폭 screenWidth와 비교해서 아래의 보기 중 1개만 선택해.\n
             즉, 해당 box를 배경과 비교해서 leftMargin과 rightMargin 값을 가지고 아래를 평가해줘.\n
             3-1) 사람들이 화면 기준 왼쪽으로 치우쳐져 있다면, 너무 오른쪽으로 치우쳐 있으니 왼쪽으로 조금만 가달라고 말해줘.\n
@@ -65,12 +72,14 @@ def get_prompt():
         {\n"
           \"face_count\": 5,\n
           \"face_details\": [1, 2, 3, 4, 5], \n
-          \"suggestions\": \"1번 index야, 키가 참 크다. 그러니 가운데로 와줘!\"\n
+          \"suggestions\": \"왼쪽에서 두 번째에 있는 너! 키가 참 크다. 그러니 가운데로 와줘!\"\n
         }\n\n
         그 외 설명이나 문장은 넣지 말고, 오직 JSON 객체만 반환해 줘.
         각 composition에 대해 평가한 내용도 "composition_" 항목에서 알려줘.
         """
     )
+    
+    
 
 
 @feedback_bp.route("/feedback", methods=["POST"])
