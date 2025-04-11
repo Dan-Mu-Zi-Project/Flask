@@ -12,32 +12,20 @@ from app.config import Config
 feedback_bp = Blueprint("feedback", __name__)
 client = openai.OpenAI(api_key=Config.OPENAI_API_KEY)
 
+
 def get_prompt_1():
-    return """
+    return
+
+
+"""
 	너는 지금 친구들 단체사진을 찍어주는 사진사야. 반말로, 친근하게 단체사진을 평가해 줘.
 	아래 이미지를 분석한 결과를 **반드시 아래 JSON 구조에 맞춰 오직 JSON 객체로만 출력**해 줘.
-        
-        ---
-
-출력 JSON 구조는 다음과 같아:
-
-{
-  "face_count": int,               // 사진 속 얼굴 수
-  "face_details": [int, int, ...], // 왼쪽부터 사람 인덱스 번호
-  "composition_4": string,         // 좌우 여백 평가
-  "composition_5": string,         // 위쪽 여백 평가
-  "composition_6": string,         // 프레임 벗어남 평가
-  "composition_7": string,         // 얼굴 겹침 평가
-  "composition_8": string,         // 거리 차이 평가
-  "scores": [int, int, ..., int],  // composition_4 ~ composition_8 에 대한 점수 총 5개
-  "suggestions": string            // 구도에 대한 가장 시급한 조언 1개
-}
 
 ---
 
 🧠 평가 방식:
 
-각 composition_4 ~ composition_8 항목은 아래 기준 중 1개를 선택해 줘. 적당하면 '패스'라고 써줘.
+각 composition_4 ~ composition_8 항목의 기준은 아래를 참고해.
 - composition_4:           
     : 전체 사람들의 얼굴 박스의 left/right margin이 화면 폭에 비해 너무 좁으면 → "다들 너무 떨어져 있어! 조금만 붙어줘!"라고 말해줘.
 
@@ -55,7 +43,7 @@ def get_prompt_1():
 	- 얼굴 박스 중 유독 **작은** 박스(즉, 멀리 있는 사람)가 있다면 → "너무 머니까 앞으로 한 발짝만 와줘~"라고 말해줘.
 	- 누가 문제인지 명확히 판단해서 자연스럽게 지칭해 줘 (예: "맨 왼쪽에서 두 번째 사람!" 같은 식으로).
 
-각 항목은 점수로도 평가해 줘 (4~10번 → 총 5개 항목). 점수는 0~10 사이로 자유롭게 매기되, **8~10번 항목은 중요도 가중치를 두고 평가**해 줘. 점수가 높은 항목이 시급한 문제야.
+각 항목은 점수로 평가하는데 (1~10점) 8~10번 항목은 중요도 가중치를 두고 평가해 줘. 점수가 높은 항목이 시급한 문제야.
 
 ---
 
@@ -65,26 +53,22 @@ def get_prompt_1():
 - "맨 왼쪽에 있는 너", "왼쪽에서 두 번째에 있는 사람", "맨 오른쪽에 있는 너!" 이런 식으로 자연스럽게 불러줘.
 - "조금만", "한 발짝만", "살짝" 같은 말로 자연스럽게 요청해줘.
 - 짧은 위트를 붙이면 더 좋아!
-- **조명, 배경, 옷, 표정 등은 절대 언급하지 마! 구도만 평가해.**
-
-—
-
+- 조명, 배경, 옷, 표정 등은 절대 언급하지 마! 구도만 평가해.
 
 ---
 
 📌 예시:
 
-```json
 {
-  "face_count": 5,
-  "face_details": [0, 1, 2, 3, 4],
-  "composition_4": "패스",
-  "composition_5": "패스",
-  "composition_6": "패스",
+  "face_count": 5, // 사진 속 얼굴 수
+  "face_details": [0, 1, 2, 3, 4], // 왼쪽부터 사람 인덱스 번호
+  "composition_4": "패스", 
+  "composition_5": "패스", 
+  "composition_6": "패스",  
   "composition_7": "맨 오른쪽에 있는 너! 옆 사람이랑 너무 겹쳐, 살짝만 떨어져 봐!",
   "composition_8": "왼쪽에서 세 번째에 있는 사람! 너 혼자 너무 멀어 보여~ 앞으로 한 발짝만 와줘!",
-  "scores": [0, 0, 8, 9, 10],
-  "suggestions": "왼쪽에서 세 번째에 있는 사람! 너 혼자 너무 멀어 보여~ 앞으로 한 발짝만 와줘!"
+  "scores": [0, 0, 8, 9, 10], // composition_4 ~ composition_8 에 대한 점수 총 5개
+  "suggestions": "왼쪽에서 세 번째에 있는 사람! 너 혼자 너무 멀어 보여~ 앞으로 한 발짝만 와줘!" // 구도에 대한 가장 시급한 조언 1개, 꼭 있어야 함
 }
           
 ——
@@ -101,31 +85,19 @@ def get_prompt_1():
 
 
 def get_prompt_2():
-    return """
+    return
+
+
+"""
 	너는 지금 친구들 단체사진을 찍어주는 사진사야. 반말로, 친근하게 단체사진을 평가해 줘.
 	아래 이미지를 분석한 결과를 **반드시 아래 JSON 구조에 맞춰 오직 JSON 객체로만 출력**해 줘.
         
-        ---
-
-출력 JSON 구조는 다음과 같아:
-
-{
-  "face_count": int,               // 사진 속 얼굴 수
-  "face_details": [int, int, ...], // 왼쪽부터 사람 인덱스 번호
-  "composition_2": string,         // 얼굴 간 거리 평가 (가로)
-  "composition_3": string,         // 얼굴 간 높이 평가 (세로)
-  "composition_6": string,         // 프레임 벗어남 평가
-  "composition_7": string,         // 얼굴 겹침 평가
-  "composition_8": string,         // 거리 차이 평가
-  "scores": [int, int, ..., int],  // composition_2 ~ composition_8 에 대한 점수 총 5개
-  "suggestions": string            // 구도에 대한 가장 시급한 조언 1개
-}
-
 ---
 
 🧠 평가 방식:
 
-각 composition_2, 3, 6, 7, 8 항목은 아래 기준 중 1개를 선택해 줘. 적당하면 '패스'라고 써줘.
+각 composition_2, 3, 6, 7, 8 항목의 기준은 아래를 참고해.
+
 - composition_2:           
     : 사람 얼굴들 사이의 좌우 간격(중심 x값 차이 또는 박스 간 거리)을 계산해서,  
 			다른 간격보다 유독 먼 경우 → 떨어져 있는 사람에게 '붙어줘!'  
@@ -151,7 +123,7 @@ def get_prompt_2():
 	- 얼굴 박스 중 유독 **작은** 박스(즉, 멀리 있는 사람)가 있다면 → "앞으로 한 발짝만 와줘~"라고 말해줘.
 	- 누가 문제인지 명확히 판단해서 자연스럽게 지칭해 줘 (예: "맨 왼쪽에서 두 번째 사람!" 같은 식으로).
 
-각 항목은 점수로도 평가해 줘 (2,3,6,7,8번 → 총 5개 항목). 점수는 0~10 사이로 자유롭게 매기되, **8~10번 항목은 중요도 가중치를 두고 평가**해 줘. 점수가 높은 항목이 시급한 문제야.
+각 항목은 점수로 평가하는데 (1~10점) 8~10번 항목은 중요도 가중치를 두고 평가해 줘. 점수가 높은 항목이 시급한 문제야.
 
 ---
 
@@ -161,26 +133,23 @@ def get_prompt_2():
 - "맨 왼쪽에 있는 너", "왼쪽에서 두 번째에 있는 사람", "맨 오른쪽에 있는 너!" 이런 식으로 자연스럽게 불러줘.
 - "조금만", "한 발짝만", "살짝" 같은 말로 자연스럽게 요청해줘.
 - 짧은 위트를 붙이면 더 좋아!
-- **조명, 배경, 옷, 표정 등은 절대 언급하지 마! 구도만 평가해.**
-
-—
+- 조명, 배경, 옷, 표정 등은 절대 언급하지 마! 구도만 평가해.
 
 
 ---
 
 📌 예시:
 
-```json
 {
-  "face_count": 5,
-  "face_details": [0, 1, 2, 3, 4],
+  "face_count": 5, // 사진 속 얼굴 수
+  "face_details": [0, 1, 2, 3, 4], // 왼쪽부터 사람 인덱스 번호
   "composition_2": "왼쪽에서 두 번째에 있는 너! 한 발짝만 오른쪽으로 와주라~ 너무 떨어져 보여!",
   "composition_3": "가운데에서 두 번째에 있는 사람! 키가 커 보이네? 가운데로 와볼래?",
   "composition_6": "패스",
   "composition_7": "맨 오른쪽에 있는 너! 옆 사람이랑 너무 겹쳐, 살짝만 떨어져 봐!",
   "composition_8": "왼쪽에서 세 번째에 있는 사람! 너 혼자 너무 멀어 보여~ 앞으로 한 발짝만 와줘!",
-  "scores": [6, 7, 8, 9, 10],
-  "suggestions": "왼쪽에서 세 번째에 있는 사람! 너 혼자 너무 멀어 보여~ 앞으로 한 발짝만 와줘!"
+  "scores": [6, 7, 8, 9, 10], // composition_2 ~ composition_8 에 대한 점수 총 5개
+  "suggestions": "왼쪽에서 세 번째에 있는 사람! 너 혼자 너무 멀어 보여~ 앞으로 한 발짝만 와줘!" // 구도에 대한 가장 시급한 조언 1개, 꼭 있어야 함
 }
           
 ——
@@ -197,30 +166,18 @@ def get_prompt_2():
 
 
 def get_prompt_3():
-    return """
+    return
+
+
+"""
 	너는 지금 친구들 단체사진을 찍어주는 사진사야. 반말로, 친근하게 단체사진을 평가해 줘.
 	아래 이미지를 분석한 결과를 **반드시 아래 JSON 구조에 맞춰 오직 JSON 객체로만 출력**해 줘.
-        
-        ---
-
-출력 JSON 구조는 다음과 같아:
-
-{
-  "face_count": int,               // 사진 속 얼굴 수
-  "face_details": [int, int, ...], // 왼쪽부터 사람 인덱스 번호
-  "composition_1": string,         // 전체 인원이 좌우로 치우친 정도
-  "composition_6": string,         // 프레임 벗어남 평가
-  "composition_7": string,         // 얼굴 겹침 평가
-  "composition_8": string,         // 거리 차이 평가
-  "scores": [int, int, ..., int],  // composition_1 ~ composition_8 에 대한 점수 총 4개
-  "suggestions": string            // 구도에 대한 가장 시급한 조언 1개
-}
 
 ---
 
 🧠 평가 방식:
 
-각 composition_1, 6, 7, 8 항목은 아래 기준 중 1개를 선택해 줘. 적당하면 '패스'라고 써줘.
+각 composition_1, 6, 7, 8 항목의 기준은 아래를 참고해.
 - composition_1:           
     :  전체 인원의 좌우 위치 중심
 			- 모든 사람들의 bounding box를 감싸는 하나의 큰 박스를 만들고, 이 박스가 화면 중심 기준 어느 쪽으로 치우쳤는지 판단해줘.
@@ -240,7 +197,7 @@ def get_prompt_3():
 	- 누가 문제인지 명확히 판단해서 자연스럽게 지칭해 줘 (예: "맨 왼쪽에서 두 번째 사람!" 같은 식으로).
 
 
-각 항목은 점수로도 평가해 줘 (1,6,7,8번 → 총 4개 항목). 점수는 0~10 사이로 자유롭게 매기되, **8~10번 항목은 중요도 가중치를 두고 평가**해 줘. 점수가 높은 항목이 시급한 문제야.
+각 항목은 점수로 평가하는데 (1~10점) 8~10번 항목은 중요도 가중치를 두고 평가해 줘. 점수가 높은 항목이 시급한 문제야.
 
 ---
 
@@ -252,26 +209,23 @@ def get_prompt_3():
 - 짧은 위트를 붙이면 더 좋아!
 - **조명, 배경, 옷, 표정 등은 절대 언급하지 마! 구도만 평가해.**
 
-—
-
-
 ---
 
 📌 예시:
 
-```json
 {
-  "face_count": 5,
-  "face_details": [0, 1, 2, 3, 4],
-  "composition_1": "다들 화면 왼쪽으로 너무 치우쳐 있어! 살짝만 오른쪽으로 옮겨볼까?",
-  "composition_6": "패스",
-  "composition_7": "맨 오른쪽에 있는 너! 옆 사람이랑 너무 겹쳐, 살짝만 떨어져 봐!",
-  "composition_8": "왼쪽에서 세 번째에 있는 사람! 너 혼자 너무 멀어 보여~ 앞으로 한 발짝만 와줘!",
-  "scores": [6, 7, 8, 9, 10],
-  "suggestions": "왼쪽에서 세 번째에 있는 사람! 너 혼자 너무 멀어 보여~ 앞으로 한 발짝만 와줘!"
+  "face_count": 5, // 사진 속 얼굴 수
+  "face_details": [0, 1, 2, 3, 4], // 왼쪽부터 사람 인덱스 번호
+  "composition_1": "다들 화면 왼쪽으로 너무 치우쳐 있어! 살짝만 오른쪽으로 옮겨볼까?", // 전체 인원이 좌우로 치우친 정도
+  "composition_6": "패스", // 프레임 벗어남 평가
+  "composition_7": "맨 오른쪽에 있는 너! 옆 사람이랑 너무 겹쳐, 살짝만 떨어져 봐!", // 얼굴 겹침 평가
+  "composition_8": "왼쪽에서 세 번째에 있는 사람! 너 혼자 너무 멀어 보여~ 앞으로 한 발짝만 와줘!", // 거리 차이 평가
+  "scores": [6, 7, 8, 9], // 점수 총 4개
+  "suggestions": "왼쪽에서 세 번째에 있는 사람! 너 혼자 너무 멀어 보여~ 앞으로 한 발짝만 와줘!" // 구도에 대한 가장 시급한 조언 1개, 꼭 있어야 함
 }
           
 ——
+
 💡 참고: 사진 속 사람들은 왼쪽에서 오른쪽으로 스캔하며 인덱스를 매겨 (0번부터 시작).  
 말할 땐 아래처럼 자연스럽게 불러줘:
 
@@ -282,6 +236,7 @@ def get_prompt_3():
 
 항상 자연스럽고 친구에게 말하듯 부탁해줘!
 """
+
 
 @feedback_bp.route("/feedback", methods=["POST"])
 @swag_from(os.path.join(os.path.dirname(__file__), "../../../docs/feedback.yml"))
@@ -306,25 +261,24 @@ def photo_feedback():
 
         user_input = [
             {"type": "input_text", "text": prompt},
-            {"type": "input_image", "image_url": f"data:image/jpeg;base64,{b64_image}"}
+            {"type": "input_image", "image_url": f"data:image/jpeg;base64,{b64_image}"},
         ]
 
         gpt_response = client.responses.create(
-            model="gpt-4o-mini",
-            input=[{"role": "user", "content": user_input}]
+            model="gpt-4o-mini", input=[{"role": "user", "content": user_input}]
         )
 
         text_content = gpt_response.output[0].content[0].text
-        cleaned_text = text_content.strip().removeprefix("```json").removesuffix("```").strip()
+        cleaned_text = (
+            text_content.strip().removeprefix("```json").removesuffix("```").strip()
+        )
         parsed = json.loads(cleaned_text)
 
         tts_text = parsed["suggestions"].replace("\n", " ")
 
         speech_path = Path(tempfile.mktemp(suffix=".mp3"))
         with client.audio.speech.with_streaming_response.create(
-            model="gpt-4o-mini-tts",
-            voice="coral",
-            input=tts_text
+            model="gpt-4o-mini-tts", voice="coral", input=tts_text
         ) as speech_response:
             speech_response.stream_to_file(speech_path)
 
