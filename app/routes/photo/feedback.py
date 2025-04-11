@@ -14,10 +14,8 @@ client = openai.OpenAI(api_key=Config.OPENAI_API_KEY)
 
 
 def get_prompt_1():
-    return
-
-
-"""
+    return(
+        """
 	너는 지금 친구들 단체사진을 찍어주는 사진사야. 반말로, 친근하게 단체사진을 평가해 줘.
 	아래 이미지를 분석한 결과를 **반드시 아래 JSON 구조에 맞춰 오직 JSON 객체로만 출력**해 줘.
 
@@ -82,13 +80,12 @@ def get_prompt_1():
 
 항상 자연스럽고 친구에게 말하듯 부탁해줘!
 """
+    )
 
 
 def get_prompt_2():
-    return
-
-
-"""
+    return(
+        """
 	너는 지금 친구들 단체사진을 찍어주는 사진사야. 반말로, 친근하게 단체사진을 평가해 줘.
 	아래 이미지를 분석한 결과를 **반드시 아래 JSON 구조에 맞춰 오직 JSON 객체로만 출력**해 줘.
         
@@ -163,13 +160,11 @@ def get_prompt_2():
 
 항상 자연스럽고 친구에게 말하듯 부탁해줘!
 """
-
+    )
 
 def get_prompt_3():
-    return
-
-
-"""
+    return(
+        """
 	너는 지금 친구들 단체사진을 찍어주는 사진사야. 반말로, 친근하게 단체사진을 평가해 줘.
 	아래 이미지를 분석한 결과를 **반드시 아래 JSON 구조에 맞춰 오직 JSON 객체로만 출력**해 줘.
 
@@ -236,6 +231,7 @@ def get_prompt_3():
 
 항상 자연스럽고 친구에게 말하듯 부탁해줘!
 """
+    )
 
 
 @feedback_bp.route("/feedback", methods=["POST"])
