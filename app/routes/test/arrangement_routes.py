@@ -323,9 +323,14 @@ def analyze_arrangement():
                     key = d.get("instruction")
                     group_map[key].append(d.get("name"))
                 for instruction, names in group_map.items():
-                    # 이동지시만 메시지에 포함 ("카메라에 너무 멀다", "카메라에 너무 가깝다" 모두 제외)
-                    if "멀" in instruction or "가깝" in instruction:
-                        continue
+                    # 이동지시만 추출 (예: "카메라에 너무 가깝습니다. 뒤로 조금 이동해주세요.")
+                    move_part = None
+                    for move_kw in ["앞으로 조금 이동해주세요", "뒤로 조금 이동해주세요"]:
+                        if move_kw in instruction:
+                            move_part = move_kw
+                            break
+                    if not move_part:
+                        continue  # 이동지시가 없으면 메시지 생성하지 않음
                     def get_first_name(name):
                         if name and isinstance(name, str) and len(name) > 1:
                             return name[1:] if len(name) > 2 else name[-1]
@@ -335,10 +340,10 @@ def analyze_arrangement():
                         name_str2 = name_str
                     else:
                         name_str2 = name_str + '은'
-                    sentence = f"{name_str2} {instruction}"
+                    sentence = f"{name_str2} {move_part}"
                     depth_grouped.append({
                         "targets": names,
-                        "instruction": instruction,
+                        "instruction": move_part,
                         "message": sentence
                     })
                 fb["depth_grouped"] = depth_grouped
