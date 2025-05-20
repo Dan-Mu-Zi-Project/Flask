@@ -294,14 +294,17 @@ def analyze_arrangement():
                     key = (r.get("direction"), r.get("instruction"))
                     group_map[key].append(r.get("target"))
                 for (direction, instruction), targets in group_map.items():
-                    # 이름이 None인 경우 '이름없음'으로 대체 가능
-                    name_str = ', '.join([t if t else '이름없음' for t in targets])
+                    # 이름이 None인 경우 '이름없음'으로 대체, 이름이 있으면 성 빼기
+                    def get_first_name(name):
+                        if name and isinstance(name, str) and len(name) > 1:
+                            return name[1:] if len(name) > 2 else name[-1]
+                        return name if name else '이름없음'
+                    name_str = ', '.join([get_first_name(t) for t in targets])
                     # '은/는' 조사 처리
                     if name_str.endswith('은') or name_str.endswith('는'):
                         name_str2 = name_str
                     else:
                         name_str2 = name_str + '은'
-                    # 명령문 생성
                     sentence = f"{name_str2} {instruction}"
                     reposition_grouped.append({
                         "targets": targets,
@@ -309,14 +312,39 @@ def analyze_arrangement():
                         "instruction": instruction,
                         "message": sentence
                     })
-                # 기존 reposition은 제거, grouped만 남김
                 fb["reposition_grouped"] = reposition_grouped
                 del fb["reposition"]
+            # --- depth 피드백 그룹화 및 자연어 문장 생성 ---
+            depth_grouped = []
+            if "depth" in fb:
+                from collections import defaultdict
+                group_map = defaultdict(list)
+                for d in fb["depth"]:
+                    key = d.get("instruction")
+                    group_map[key].append(d.get("name"))
+                for instruction, names in group_map.items():
+                    def get_first_name(name):
+                        if name and isinstance(name, str) and len(name) > 1:
+                            return name[1:] if len(name) > 2 else name[-1]
+                        return name if name else '이름없음'
+                    name_str = ', '.join([get_first_name(n) for n in names])
+                    if name_str.endswith('은') or name_str.endswith('는'):
+                        name_str2 = name_str
+                    else:
+                        name_str2 = name_str + '은'
+                    sentence = f"{name_str2} {instruction}"
+                    depth_grouped.append({
+                        "targets": names,
+                        "instruction": instruction,
+                        "message": sentence
+                    })
+                fb["depth_grouped"] = depth_grouped
+                del fb["depth"]
             # --- feedback section toggles ---
             if not ENABLE_REPOSITION_FEEDBACK and "reposition_grouped" in fb:
                 del fb["reposition_grouped"]
-            if not ENABLE_DEPTH_FEEDBACK and "depth" in fb:
-                del fb["depth"]
+            if not ENABLE_DEPTH_FEEDBACK and "depth_grouped" in fb:
+                del fb["depth_grouped"]
             if not ENABLE_SPACING_FEEDBACK and "spacing" in fb:
                 del fb["spacing"]
             result["feedback"] = fb
