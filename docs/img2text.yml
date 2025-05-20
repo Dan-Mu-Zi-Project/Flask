@@ -1,0 +1,59 @@
+---
+tags:
+  - Test API
+
+summary: 이미지와 텍스트 프롬프트를 이용한 텍스트 생성 (스트리밍)
+description: |
+  이미지 파일과 텍스트 프롬프트를 입력받아, OpenAI 모델을 사용하여 관련 텍스트를 생성하고 스트리밍으로 반환합니다.
+  이 API는 텍스트 스트리밍을 반환합니다 (text/plain).
+
+consumes:
+  - multipart/form-data
+produces:
+  - text/plain
+
+parameters:
+  - name: image
+    in: formData
+    type: file
+    required: true
+    description: |
+      설명을 생성할 이미지 파일을 업로드합니다.
+      예: "sample_image.jpg", "photo.png"
+
+  - name: prompt
+    in: formData
+    type: string
+    required: false
+    description: |
+      이미지 설명을 생성할 때 사용할 텍스트 프롬프트입니다.
+      기본값: "이미지에 대해 설명해주세요."
+    default: "이미지에 대해 설명해주세요."
+
+responses:
+  200:
+    description: |
+      ✅ 텍스트 생성 성공 (스트리밍 텍스트 반환)
+      응답은 text/plain 타입이며, 생성된 텍스트가 스트리밍됩니다.
+    schema:
+      type: string
+      format: binary # 스트리밍을 나타내기 위함
+
+  400:
+    description: |
+      ❌ 잘못된 요청. 이미지 파일이 없거나, 잘못된 형식의 요청일 경우 발생합니다.
+    examples:
+      application/json: # 오류 응답은 JSON으로 가정
+        {
+          "error": "No image file provided"
+        }
+
+  500:
+    description: |
+      ⚠️ 서버 내부 처리 실패. OpenAI API 호출 실패 등 문제 발생 가능.
+    examples:
+      application/json: # 오류 응답은 JSON으로 가정
+        {
+          "error": "Failed to process image and generate text",
+          "message": "오류에 대한 상세 메시지"
+        } 
