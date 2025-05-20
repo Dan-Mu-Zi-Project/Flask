@@ -71,14 +71,26 @@ def preprocess_image(image_bytes, camera_type, device_rotation):
         
         print(f"회전 각도: {rotation_angle}, 카메라 타입: {camera_type}")
         
-        # 회전 적용
-        if rotation_angle != 0:
-            img_array = rotate_image(img_array, rotation_angle)
-
-        # 전면 카메라인 경우 좌우 반전 (셀피 카메라는 미러링되어 있기 때문)
-        if camera_type == "front":
-            img_array = cv2.flip(img_array, 1)  # 1은 좌우 반전
-        
+        # 카메라 타입과 방향에 따른 최적의 이미지 처리
+        if camera_type == "back":
+            # 후면 카메라: 단순히 회전만 적용
+            if rotation_angle != 0:
+                img_array = rotate_image(img_array, rotation_angle)
+        else:
+            # 전면 카메라: 방향에 따라 다르게 처리
+            if device_rotation == "portraitUp" or device_rotation == "portraitDown":
+                # 세로 방향: 먼저 좌우 반전 후 회전
+                img_array = cv2.flip(img_array, 1)  # 좌우 반전
+                if rotation_angle != 0:
+                    img_array = rotate_image(img_array, rotation_angle)
+            elif device_rotation == "landscapeRight":
+                # 오른쪽으로 회전: 90도 회전 후 상하 반전 (효과적으로 좌우 반전)
+                img_array = rotate_image(img_array, 90)
+                # img_array = cv2.flip(img_array, 0)  # 상하 반전
+            elif device_rotation == "landscapeLeft":
+                # 왼쪽으로 회전: 270도 회전 후 상하 반전 (효과적으로 좌우 반전)
+                img_array = rotate_image(img_array, 270)
+                # img_array = cv2.flip(img_array, 0)  # 상하 반전
         
         # 결과 이미지를 다시 PIL Image로 변환 후 바이트로 변환
         result_image = Image.fromarray(img_array)
