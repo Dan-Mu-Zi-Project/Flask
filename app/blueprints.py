@@ -6,6 +6,7 @@ from .routes.test.prompt import prompt_bp
 from .routes.test.text2speech import text2speech_bp
 from .routes.test.image_analysis_routes import image_analysis_bp
 from .routes.test.img2text import img2text_bp
+from .routes.test.arrangement_routes import arrangement_bp
 
 blueprints = [
     (register_bp, "/face"),
@@ -15,5 +16,6 @@ blueprints = [
     (prompt_bp, "/test"),
     (text2speech_bp, "/test"),
     (image_analysis_bp, "/test"),
-    (img2text_bp, "/test")
+    (img2text_bp, "/test"),
+    (arrangement_bp, "/test")
 ]
