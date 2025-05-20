@@ -136,29 +136,37 @@ def preprocess_image(image_bytes, camera_type, device_rotation):
         # 이미지 처리 전 크기 저장
         before_shape = img_array.shape
         
-        # 카메라 타입과 방향에 따른 최적의 이미지 처리
+        # 최적화된 이미지 처리 로직
         if camera_type == "back":
             # 후면 카메라: 단순히 회전만 적용
             if quarters != 0:
                 logger.info(f"후면 카메라 회전 적용: {quarters*90}도")
                 img_array = rotate_image_90(img_array, quarters)
         else:
-            # 전면 카메라: 방향에 따라 다르게 처리
-            if device_rotation == "portraitUp" or device_rotation == "portraitDown":
-                # 세로 방향: 먼저 좌우 반전 후 회전
-                logger.info(f"전면 카메라 세로 방향: 좌우 반전 + {quarters*90}도 회전")
+            # 전면 카메라: 최적화된 회전 방향 적용
+            if device_rotation == "portraitUp":
+                # 세로 정방향: 좌우 반전만 적용
+                logger.info("전면 카메라 세로 정방향: 좌우 반전만 적용")
                 img_array = cv2.flip(img_array, 1)  # 좌우 반전
-                if quarters != 0:
-                    img_array = rotate_image_90(img_array, quarters)
+            
+            elif device_rotation == "portraitDown":
+                # 세로 뒤집힘: 좌우 반전 + 180도 회전
+                logger.info("전면 카메라 세로 뒤집힘: 좌우 반전 + 180도 회전")
+                img_array = cv2.flip(img_array, 1)  # 좌우 반전
+                img_array = rotate_image_90(img_array, 2)  # 180도 회전
+            
             elif device_rotation == "landscapeRight":
-                # 오른쪽으로 회전: 90도 회전 후 좌우 반전
+                # 오른쪽으로 눕힘: 90도 회전 + 좌우 반전만 적용
+                # (90도 회전 후 좌우 반전이 가장 효율적)
                 logger.info("전면 카메라 오른쪽 방향: 90도 회전 + 좌우 반전")
-                img_array = rotate_image_90(img_array, 1)  # 90도 시계방향
+                img_array = rotate_image_90(img_array, 1)  # 90도 회전
                 img_array = cv2.flip(img_array, 1)  # 좌우 반전
+            
             elif device_rotation == "landscapeLeft":
-                # 왼쪽으로 회전: 270도 회전 후 좌우 반전
-                logger.info("전면 카메라 왼쪽 방향: 270도 회전 + 좌우 반전")
-                img_array = rotate_image_90(img_array, 3)  # 270도 시계방향
+                # 왼쪽으로 눕힘: 90도 반시계 회전 + 좌우 반전
+                # (90도 반시계 회전은 cv2.ROTATE_90_COUNTERCLOCKWISE 직접 적용)
+                logger.info("전면 카메라 왼쪽 방향: 90도 반시계 회전 + 좌우 반전")
+                img_array = cv2.rotate(img_array, cv2.ROTATE_90_COUNTERCLOCKWISE)  # 90도 반시계 회전
                 img_array = cv2.flip(img_array, 1)  # 좌우 반전
         
         # 이미지 처리 후 크기 확인
