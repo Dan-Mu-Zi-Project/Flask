@@ -74,6 +74,11 @@ class ImageProcessor:
 
 image_processor = ImageProcessor()
 
+# --- Feedback section toggles ---
+ENABLE_DEPTH_FEEDBACK = True
+ENABLE_REPOSITION_FEEDBACK = True
+ENABLE_SPACING_FEEDBACK = False  # spacing은 항상 응답하지 않음
+
 @arrangement_bp.route('/arrangement', methods=['POST'])
 @swag_from({
     'tags': ['Image Analysis'],
@@ -258,7 +263,6 @@ def analyze_arrangement():
             # reposition
             for r in fb.get("reposition", []):
                 if "target" in r:
-                    # "1번" -> 1 추출
                     import re
                     m = re.match(r"(\d+)", str(r["target"]))
                     if m:
@@ -281,6 +285,41 @@ def analyze_arrangement():
                     n = name_map.get(d["id"], d["id"])
                     d["name"] = n
                     del d["id"]
+            # --- reposition 피드백 그룹화 및 자연어 문장 생성 ---
+            reposition_grouped = []
+            if "reposition" in fb:
+                from collections import defaultdict
+                group_map = defaultdict(list)
+                for r in fb["reposition"]:
+                    key = (r.get("direction"), r.get("instruction"))
+                    group_map[key].append(r.get("target"))
+                for (direction, instruction), targets in group_map.items():
+                    # 이름이 None인 경우 '이름없음'으로 대체 가능
+                    name_str = ', '.join([t if t else '이름없음' for t in targets])
+                    # '은/는' 조사 처리
+                    if name_str.endswith('은') or name_str.endswith('는'):
+                        name_str2 = name_str
+                    else:
+                        name_str2 = name_str + '은'
+                    # 명령문 생성
+                    sentence = f"{name_str2} {instruction}"
+                    reposition_grouped.append({
+                        "targets": targets,
+                        "direction": direction,
+                        "instruction": instruction,
+                        "message": sentence
+                    })
+                # 기존 reposition은 제거, grouped만 남김
+                fb["reposition_grouped"] = reposition_grouped
+                del fb["reposition"]
+            # --- feedback section toggles ---
+            if not ENABLE_REPOSITION_FEEDBACK and "reposition_grouped" in fb:
+                del fb["reposition_grouped"]
+            if not ENABLE_DEPTH_FEEDBACK and "depth" in fb:
+                del fb["depth"]
+            if not ENABLE_SPACING_FEEDBACK and "spacing" in fb:
+                del fb["spacing"]
+            result["feedback"] = fb
         # --- 왼쪽부터 인물 이름 정렬 ---
         left_to_right_names = []
         if "people" in result and identified_people:
@@ -306,6 +345,10 @@ def analyze_arrangement():
                 else:
                     left_to_right_names.append(None)
         result["left_to_right_names"] = left_to_right_names
+        # --- 응답에서 ideal_gap, identified_people, people 제외 ---
+        for k in ["ideal_gap", "identified_people", "people"]:
+            if k in result:
+                del result[k]
         return jsonify(result)
     except Exception as e:
         current_app.logger.error(f'배치 분석 실패: {str(e)}')
