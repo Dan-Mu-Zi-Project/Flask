@@ -209,7 +209,7 @@ def analyze_arrangement():
         result = arrangement_advisor.analyze(img, margin_ratio=margin_ratio, tol_ratio=tol_ratio)
         result["identified_people"] = identified_people
 
-        # --- people의 target에 이름 매핑 ---
+        # --- people의 id/target을 이름으로 통합 ---
         if "people" in result and identified_people:
             def get_center(p):
                 if "center" in p and isinstance(p["center"], (list, tuple)):
@@ -227,6 +227,7 @@ def analyze_arrangement():
                     return [x + w/2, y + h/2]
                 return [0,0]
             used = set()
+            name_map = {}
             for p in result["people"]:
                 pc = get_center(p)
                 min_idx = -1
@@ -243,8 +244,43 @@ def analyze_arrangement():
                     used.add(min_idx)
                     match = identified_people[min_idx].get("match")
                     name = match.get("name") if match and match.get("name") else match.get("profileId") if match else None
-                    # people의 target 필드에 이름 할당
-                    p["target"] = name
+                    # people의 id/target을 이름으로 통합
+                    p["name"] = name
+                    name_map[p.get("id")] = name
+                    if "target" in p:
+                        del p["target"]
+                    if "id" in p:
+                        del p["id"]
+                else:
+                    p["name"] = None
+            # --- feedback 내 id/target도 이름으로 변환 ---
+            fb = result.get("feedback", {})
+            # reposition
+            for r in fb.get("reposition", []):
+                if "target" in r:
+                    # "1번" -> 1 추출
+                    import re
+                    m = re.match(r"(\d+)", str(r["target"]))
+                    if m:
+                        pid = int(m.group(1))
+                        r["target"] = name_map.get(pid, r["target"])
+            # spacing
+            for s in fb.get("spacing", []):
+                if "between" in s:
+                    import re
+                    m = re.match(r"(\d+)[^\d]+(\d+)", str(s["between"]))
+                    if m:
+                        pid1 = int(m.group(1))
+                        pid2 = int(m.group(2))
+                        n1 = name_map.get(pid1, s["between"])
+                        n2 = name_map.get(pid2, s["between"])
+                        s["between"] = f"{n1}-{n2}"
+            # depth
+            for d in fb.get("depth", []):
+                if "id" in d:
+                    n = name_map.get(d["id"], d["id"])
+                    d["name"] = n
+                    del d["id"]
         # --- 왼쪽부터 인물 이름 정렬 ---
         left_to_right_names = []
         if "people" in result and identified_people:
