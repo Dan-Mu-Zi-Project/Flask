@@ -215,6 +215,11 @@ def upload_photo():
         # 카메라 타입과 기기 회전 방향 정보 가져오기
         camera_type = request.form.get("cameraType", "back")  # 기본값은 후면 카메라
         device_rotation = request.form.get("deviceRotation", "portraitUp")  # 기본값은 세로 정상
+        
+        # DeviceRotation.landscapeLeft와 같은 형식에서 실제 방향 문자열 추출
+        if device_rotation.startswith("DeviceRotation."):
+            device_rotation = device_rotation.split(".")[1]  # Enum prefix 제거
+            
         logger.info(f"이미지 메타데이터: 카메라={camera_type}, 방향={device_rotation}")
 
         auth_header = request.headers.get("Authorization")
