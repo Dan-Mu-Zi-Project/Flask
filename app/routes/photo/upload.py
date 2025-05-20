@@ -17,22 +17,30 @@ upload_bp = Blueprint("debug_bp", __name__)
 # 이미지 회전 함수
 def rotate_image(image, angle):
     """
-    이미지를 주어진 각도로 회전합니다
+    이미지를 주어진 각도로 회전합니다 (잘림 없이)
     """
     # 이미지가 PIL Image인 경우 numpy 배열로 변환
     if isinstance(image, Image.Image):
         image = np.array(image)
-    
-    # 이미지의 중심점
+
     (h, w) = image.shape[:2]
     center = (w // 2, h // 2)
-    
+
     # 회전 행렬 계산
     rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
-    
-    # 회전 적용
-    rotated = cv2.warpAffine(image, rotation_matrix, (w, h))
-    
+
+    # 회전 후 bounding box 크기 계산
+    abs_cos = abs(rotation_matrix[0, 0])
+    abs_sin = abs(rotation_matrix[0, 1])
+    new_w = int(h * abs_sin + w * abs_cos)
+    new_h = int(h * abs_cos + w * abs_sin)
+
+    # 회전 행렬의 이동 보정
+    rotation_matrix[0, 2] += (new_w / 2) - center[0]
+    rotation_matrix[1, 2] += (new_h / 2) - center[1]
+
+    # 회전 적용 (새로운 크기로)
+    rotated = cv2.warpAffine(image, rotation_matrix, (new_w, new_h))
     return rotated
 
 # 이미지 전처리 함수
@@ -64,7 +72,7 @@ def preprocess_image(image_bytes, camera_type, device_rotation):
         print(f"회전 각도: {rotation_angle}, 카메라 타입: {camera_type}")
         
         # 전면 카메라인 경우 좌우 반전 (셀피 카메라는 미러링되어 있기 때문)
-        if camera_type == "front":
+        if camera_type == "back":
             img_array = cv2.flip(img_array, 1)  # 1은 좌우 반전
         
         # 회전 적용
