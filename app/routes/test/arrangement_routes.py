@@ -196,31 +196,30 @@ def analyze_arrangement():
                 group_vector_response = request_group_face_vectors(share_group_id, access_token)
                 for face in valid_embeddings:
                     matches = find_best_match(face["embedding"], group_vector_response)
+                    # 임베딩 정보 제외
+                    face_info = {k: v for k, v in face.items() if k != "embedding"}
                     if matches:
-                        identified_people.append({"face": face, "match": matches[0]})
+                        identified_people.append({"face": face_info, "match": matches[0]})
                     else:
-                        identified_people.append({"face": face, "match": None})
+                        identified_people.append({"face": face_info, "match": None})
             else:
-                identified_people = valid_embeddings
+                # 임베딩 정보 제외
+                identified_people = [{"face": {k: v for k, v in face.items() if k != "embedding"}, "match": None} for face in valid_embeddings]
         # --- 배치 분석 ---
         result = arrangement_advisor.analyze(img, margin_ratio=margin_ratio, tol_ratio=tol_ratio)
         result["identified_people"] = identified_people
 
-        # --- 왼쪽부터 인물 이름 정렬 ---
-        left_to_right_names = []
+        # --- people의 target에 이름 매핑 ---
         if "people" in result and identified_people:
-            # people: 각 인물의 bounding box 또는 center 정보가 있어야 함
-            # identified_people: 각 얼굴의 위치(face['box'] 또는 face['bbox'] 등)가 있어야 함
-            # 1. people을 x좌표 기준으로 정렬
             def get_center(p):
                 if "center" in p and isinstance(p["center"], (list, tuple)):
                     return p["center"]
                 elif "bbox" in p and isinstance(p["bbox"], (list, tuple)):
                     x, y, w, h = p["bbox"]
                     return [x + w/2, y + h/2]
+                elif "pos" in p and isinstance(p["pos"], dict):
+                    return [p["pos"].get("x", 0), p["pos"].get("y", 0)]
                 return [0,0]
-            people_sorted = sorted(result["people"], key=lambda p: get_center(p)[0])
-            # 2. 각 people에 가장 가까운 identified_people 매칭 (center 기준)
             def get_face_center(face):
                 box = face["face"].get("box") or face["face"].get("bbox")
                 if box and isinstance(box, (list,tuple)):
@@ -228,9 +227,31 @@ def analyze_arrangement():
                     return [x + w/2, y + h/2]
                 return [0,0]
             used = set()
+            for p in result["people"]:
+                pc = get_center(p)
+                min_idx = -1
+                min_dist = float("inf")
+                for idx, face in enumerate(identified_people):
+                    if idx in used:
+                        continue
+                    fc = get_face_center(face)
+                    dist = (pc[0]-fc[0])**2 + (pc[1]-fc[1])**2
+                    if dist < min_dist:
+                        min_dist = dist
+                        min_idx = idx
+                if min_idx >= 0:
+                    used.add(min_idx)
+                    match = identified_people[min_idx].get("match")
+                    name = match.get("name") if match and match.get("name") else match.get("profileId") if match else None
+                    # people의 target 필드에 이름 할당
+                    p["target"] = name
+        # --- 왼쪽부터 인물 이름 정렬 ---
+        left_to_right_names = []
+        if "people" in result and identified_people:
+            people_sorted = sorted(result["people"], key=lambda p: get_center(p)[0])
+            used = set()
             for p in people_sorted:
                 pc = get_center(p)
-                # 가장 가까운 identified_people 찾기
                 min_idx = -1
                 min_dist = float("inf")
                 for idx, face in enumerate(identified_people):
