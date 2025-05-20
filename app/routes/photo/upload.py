@@ -8,9 +8,31 @@ import cv2
 import numpy as np
 from PIL import Image
 import io
+import logging
+import logging.handlers
 
 from app.utils.face_utils import extract_multiple_face_embeddings, find_best_match
 from app.utils.upload_utils import request_group_face_vectors, request_presigned_url, upload_image_to_presigned_url, finalize_photo_upload, get_current_share_group_id
+
+# 로깅 설정
+logger = logging.getLogger('upload_bp')
+logger.setLevel(logging.DEBUG)
+
+# 로그 파일 핸들러 설정 (10MB 크기로 로테이션, 최대 5개 파일 유지)
+log_file = 'upload_debug.log'
+handler = logging.handlers.RotatingFileHandler(
+    log_file, maxBytes=10*1024*1024, backupCount=5, encoding='utf-8'
+)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+
+# 콘솔 출력 핸들러 추가 (터미널에서도 로그 확인 가능)
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(formatter)
+logger.addHandler(console_handler)
+
+logger.info("==== 로그 시스템 초기화 완료 ====")
 
 upload_bp = Blueprint("debug_bp", __name__)
 
@@ -87,6 +109,7 @@ def preprocess_image(image_bytes, camera_type, device_rotation):
     try:
         # 바이트 데이터로부터 이미지 읽기
         image = Image.open(io.BytesIO(image_bytes))
+        logger.info(f"원본 이미지 크기: {image.size}, 모드: {image.mode}")
         
         # OpenCV로 처리하기 위해 numpy 배열로 변환
         img_array = np.array(image)
@@ -102,35 +125,45 @@ def preprocess_image(image_bytes, camera_type, device_rotation):
         elif device_rotation == "landscapeLeft":
             quarters = 3  # 270도 시계방향 (90도 반시계방향)
         
+        logger.info(f"이미지 처리 시작: 방향={device_rotation}, 회전={quarters*90}도, 카메라={camera_type}")
+        
         # 변환이 필요한지 여부
         needs_processing = quarters != 0 or camera_type == "front"
         if not needs_processing:
+            logger.info("이미지 변환 불필요: 후면 카메라/세로 방향")
             return image_bytes  # 원본 반환
+        
+        # 이미지 처리 전 크기 저장
+        before_shape = img_array.shape
         
         # 카메라 타입과 방향에 따른 최적의 이미지 처리
         if camera_type == "back":
             # 후면 카메라: 단순히 회전만 적용
             if quarters != 0:
-                # 새 rotate_image_90 함수 사용
+                logger.info(f"후면 카메라 회전 적용: {quarters*90}도")
                 img_array = rotate_image_90(img_array, quarters)
         else:
             # 전면 카메라: 방향에 따라 다르게 처리
             if device_rotation == "portraitUp" or device_rotation == "portraitDown":
                 # 세로 방향: 먼저 좌우 반전 후 회전
+                logger.info(f"전면 카메라 세로 방향: 좌우 반전 + {quarters*90}도 회전")
                 img_array = cv2.flip(img_array, 1)  # 좌우 반전
                 if quarters != 0:
-                    # 새 rotate_image_90 함수 사용
                     img_array = rotate_image_90(img_array, quarters)
             elif device_rotation == "landscapeRight":
-                # 오른쪽으로 회전: 90도 회전 후 필요시 반전
+                # 오른쪽으로 회전: 90도 회전 후 좌우 반전
+                logger.info("전면 카메라 오른쪽 방향: 90도 회전 + 좌우 반전")
                 img_array = rotate_image_90(img_array, 1)  # 90도 시계방향
-                # 좌우 반전
-                img_array = cv2.flip(img_array, 1)
+                img_array = cv2.flip(img_array, 1)  # 좌우 반전
             elif device_rotation == "landscapeLeft":
-                # 왼쪽으로 회전: 270도 회전 후 필요시 반전
+                # 왼쪽으로 회전: 270도 회전 후 좌우 반전
+                logger.info("전면 카메라 왼쪽 방향: 270도 회전 + 좌우 반전")
                 img_array = rotate_image_90(img_array, 3)  # 270도 시계방향
-                # 좌우 반전
-                img_array = cv2.flip(img_array, 1)
+                img_array = cv2.flip(img_array, 1)  # 좌우 반전
+        
+        # 이미지 처리 후 크기 확인
+        after_shape = img_array.shape
+        logger.info(f"이미지 변환 결과: {before_shape} -> {after_shape}")
         
         # 결과 이미지를 다시 PIL Image로 변환 후 바이트로 변환
         result_image = Image.fromarray(img_array)
@@ -138,13 +171,28 @@ def preprocess_image(image_bytes, camera_type, device_rotation):
         # RGB 모드로 변환 (RGBA나 다른 형식에서 변환이 필요할 수 있음)
         if result_image.mode != 'RGB':
             result_image = result_image.convert('RGB')
+            logger.info(f"이미지 모드 변환: {image.mode} -> RGB")
         
         output_buffer = io.BytesIO()
         result_image.save(output_buffer, format="JPEG", quality=95)
+        processed_bytes = output_buffer.getvalue()
         
-        return output_buffer.getvalue()
+        # 처리 성공 여부 확인
+        process_success = len(processed_bytes) != len(image_bytes) or processed_bytes != image_bytes
+        logger.info(f"이미지 처리 완료: 원본 크기={len(image_bytes)}, 처리 후={len(processed_bytes)}, 변경됨={process_success}")
+        
+        # 디버깅용: 처리된 이미지 저장
+        try:
+            debug_filename = f"debug_processed_{camera_type}_{device_rotation}.jpg"
+            with open(debug_filename, "wb") as f:
+                f.write(processed_bytes)
+            logger.info(f"디버깅: 처리된 이미지 저장됨 ({debug_filename})")
+        except Exception as e:
+            logger.error(f"이미지 저장 실패: {e}")
+        
+        return processed_bytes
     except Exception as e:
-        print(f"이미지 전처리 중 오류 발생: {str(e)}")
+        logger.error(f"이미지 전처리 오류: {str(e)}")
         traceback.print_exc()
         return None
 
@@ -155,7 +203,10 @@ def upload_photo():
         if "image" not in request.files:
             return jsonify({"error": "No image part in the request"}), 400
         image_file = request.files["image"]
-        image_bytes = image_file.read()
+        original_image_bytes = image_file.read()
+        
+        # 원본 이미지 크기 로깅
+        logger.info(f"요청 수신: 원본 이미지 크기={len(original_image_bytes)} 바이트")
 
         share_group_id = request.form.get("shareGroupId", type=int)
         location = request.form.get("location", "").strip()
@@ -164,6 +215,7 @@ def upload_photo():
         # 카메라 타입과 기기 회전 방향 정보 가져오기
         camera_type = request.form.get("cameraType", "back")  # 기본값은 후면 카메라
         device_rotation = request.form.get("deviceRotation", "portraitUp")  # 기본값은 세로 정상
+        logger.info(f"이미지 메타데이터: 카메라={camera_type}, 방향={device_rotation}")
 
         auth_header = request.headers.get("Authorization")
         if not auth_header:
@@ -175,20 +227,40 @@ def upload_photo():
                 share_group_id = get_current_share_group_id(access_token)
             except Exception:
                 return jsonify({"error": "Failed to fetch shareGroupId"}), 400
+        
+        # 처리될 이미지 바이트를 원본으로 초기화
+        processed_image_bytes = None
+        image_bytes = original_image_bytes
                 
         # 이미지 전처리 적용 (카메라 타입과 방향 정보가 있는 경우)
         if camera_type and device_rotation:
             try:
-                processed_image_bytes = preprocess_image(image_bytes, camera_type, device_rotation)
+                logger.info(f"이미지 전처리 시작...")
+                processed_image_bytes = preprocess_image(original_image_bytes, camera_type, device_rotation)
+                
                 if processed_image_bytes:
-                    image_bytes = processed_image_bytes
+                    logger.info(f"전처리 성공: 처리 전={len(original_image_bytes)}바이트, 처리 후={len(processed_image_bytes)}바이트")
+                    # 원본과 처리된 이미지가 다른지 확인
+                    is_different = original_image_bytes != processed_image_bytes
+                    logger.info(f"이미지 변경 확인: {'변경됨' if is_different else '원본과 동일 (변경 안됨)'}")
+                    
+                    # 전처리된 이미지로 확실히 교체
+                    if is_different:
+                        image_bytes = processed_image_bytes
+                        logger.info("✅ 전처리된 이미지로 교체 완료")
+                    else:
+                        logger.warning("⚠️ 전처리 후에도 이미지 변경 없음")
+                else:
+                    logger.warning("⚠️ 전처리 실패, 원본 이미지 사용")
             except Exception as e:
-                print(f"이미지 전처리 실패, 원본 이미지 사용: {str(e)}")
+                logger.error(f"이미지 전처리 중 오류: {str(e)}")
                 traceback.print_exc()
 
         # 얼굴 인식 처리
+        logger.info(f"얼굴 인식 시작: 이미지 크기={len(image_bytes)}바이트")
         result = extract_multiple_face_embeddings(image_bytes)
         valid_embeddings = [r for r in result if "embedding" in r]
+        logger.info(f"얼굴 인식 결과: {len(valid_embeddings)}개 얼굴 감지됨")
         
         # 얼굴 임베딩이 없으면 프로필 매칭 없이 진행
         profile_id_list = []
@@ -197,6 +269,7 @@ def upload_photo():
             group_vector_response = request_group_face_vectors(share_group_id, access_token)
             best_matches = find_best_match(query_embedding, group_vector_response)
             profile_id_list = [match["profileId"] for match in best_matches]
+            logger.info(f"프로필 매칭 결과: {len(profile_id_list)}개 프로필 매치됨")
 
         # 이미지 업로드
         filename = str(uuid.uuid4()) + image_file.filename
@@ -205,10 +278,28 @@ def upload_photo():
         photo_url = upload_info["photoUrl"]
         presigned_url = upload_info["preSignedUrl"]
         
+        # 업로드 직전 이미지 확인
+        logger.info(f"S3 업로드 직전: 이미지 크기={len(image_bytes)}바이트")
+        # 원본과 다른지 확인
+        is_original = image_bytes == original_image_bytes
+        logger.info(f"업로드 이미지 상태: {'원본 이미지임' if is_original else '처리된 이미지임'}")
+        
+        # 디버깅용 업로드 전 이미지 저장
+        try:
+            debug_upload_filename = f"debug_upload_{camera_type}_{device_rotation}.jpg"
+            with open(debug_upload_filename, "wb") as f:
+                f.write(image_bytes)
+            logger.info(f"업로드 직전 이미지 저장: {debug_upload_filename}")
+        except Exception as e:
+            logger.error(f"디버그 이미지 저장 실패: {e}")
+        
         # S3에 이미지 업로드
+        logger.info(f"S3 업로드 시작: 이미지 크기={len(image_bytes)}바이트")
         upload_image_to_presigned_url(presigned_url, image_bytes)
+        logger.info(f"S3 업로드 완료: URL={photo_url}")
         
         # 서버에 업로드 완료 알림
+        logger.info(f"업로드 완료 요청 시작...")
         upload_result = finalize_photo_upload(
             share_group_id=share_group_id,
             photo_url=photo_url,
@@ -218,15 +309,17 @@ def upload_photo():
             image_bytes=image_bytes,
             access_token=access_token
         )
+        logger.info(f"업로드 완료 요청 성공")
 
         return jsonify({
             "message": "✅ 사진 업로드 및 등록 완료",
             "matchedProfiles": best_matches if 'best_matches' in locals() else [],
             "imageUrl": photo_url,
             "uploadResult": upload_result,
-            "preprocessed": camera_type and device_rotation and processed_image_bytes is not None
+            "preprocessed": processed_image_bytes is not None and image_bytes == processed_image_bytes
         }), 200
 
     except Exception as e:
+        logger.error(f"업로드 처리 중 오류 발생: {str(e)}")
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
