@@ -148,14 +148,35 @@ def upload_photo():
         # 이미지 전처리 적용 (카메라 타입과 방향 정보가 있는 경우)
         if camera_type and device_rotation:
             try:
+                # 원본 이미지 크기 기록
+                print(f"원본 이미지 크기: {len(image_bytes)} 바이트")
+                
                 processed_image_bytes = preprocess_image(image_bytes, camera_type, device_rotation)
                 if processed_image_bytes:
                     print(f"이미지 전처리 완료: 카메라={camera_type}, 방향={device_rotation}")
+                    print(f"처리 후 이미지 크기: {len(processed_image_bytes)} 바이트")
+                    
+                    # 디버깅용으로 전처리된 이미지 저장 (서버에 쓰기 권한이 있어야 함)
+                    try:
+                        debug_filename = f"debug_{camera_type}_{device_rotation}.jpg"
+                        with open(debug_filename, "wb") as f:
+                            f.write(processed_image_bytes)
+                        print(f"디버깅용 이미지 저장됨: {debug_filename}")
+                    except Exception as save_err:
+                        print(f"디버깅 이미지 저장 실패: {str(save_err)}")
+                    
+                    # 전처리된 이미지로 교체
                     image_bytes = processed_image_bytes
             except Exception as e:
                 print(f"이미지 전처리 실패, 원본 이미지 사용: {str(e)}")
                 traceback.print_exc()
                 # 전처리 실패시 원본 이미지 사용 (이미 image_bytes에 있음)
+
+        # 이미지 바이트 유효성 검증
+        if len(image_bytes) == 0:
+            return jsonify({"error": "Invalid image data (zero length)"}), 400
+            
+        print(f"얼굴 인식에 사용할 이미지 크기: {len(image_bytes)} 바이트")
 
         result = extract_multiple_face_embeddings(image_bytes)
         valid_embeddings = [r for r in result if "embedding" in r]
@@ -180,7 +201,20 @@ def upload_photo():
         photo_url = upload_info["photoUrl"]
         presigned_url = upload_info["preSignedUrl"]
 
+        print(f"S3 업로드 시작: URL={photo_url}, 이미지 크기={len(image_bytes)} 바이트")
+        
+        # presigned URL을 통해 S3에 이미지 업로드
         upload_image_to_presigned_url(presigned_url, image_bytes)
+        print(f"S3 업로드 완료: URL={photo_url}")
+        
+        # 디버깅용으로 업로드 직전 이미지 저장
+        try:
+            debug_upload_filename = f"debug_upload_{camera_type}_{device_rotation}.jpg"
+            with open(debug_upload_filename, "wb") as f:
+                f.write(image_bytes)
+            print(f"S3 업로드 직전 이미지 저장됨: {debug_upload_filename}")
+        except Exception as save_err:
+            print(f"업로드 직전 이미지 저장 실패: {str(save_err)}")
 
         upload_result = finalize_photo_upload(
             share_group_id=share_group_id,
@@ -188,7 +222,7 @@ def upload_photo():
             profile_id_list=profile_id_list,
             location=location,
             taked_at=take_at,
-            image_bytes=image_bytes,
+            image_bytes=image_bytes,  # 이미지 바이트가 정확히 전달되는지 확인
             access_token=access_token
         )
 
