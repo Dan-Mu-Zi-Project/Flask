@@ -57,6 +57,7 @@ def preprocess_image(image_bytes, camera_type, device_rotation):
         
         # OpenCV로 처리하기 위해 numpy 배열로 변환
         img_array = np.array(image)
+        original_array = img_array.copy()  # 원본 이미지 배열 복사
         
         # 방향에 따른 회전 각도 설정
         rotation_angle = 0
@@ -71,26 +72,48 @@ def preprocess_image(image_bytes, camera_type, device_rotation):
         
         print(f"회전 각도: {rotation_angle}, 카메라 타입: {camera_type}")
         
+        # 변환이 필요한지 여부
+        needs_processing = rotation_angle != 0 or camera_type == "front"
+        if not needs_processing:
+            print("이미지 변환 필요 없음: 후면 카메라, 세로 방향")
+            return image_bytes  # 원본 반환
+        
         # 카메라 타입과 방향에 따른 최적의 이미지 처리
         if camera_type == "back":
             # 후면 카메라: 단순히 회전만 적용
             if rotation_angle != 0:
+                print(f"후면 카메라 회전 적용: {rotation_angle}도")
                 img_array = rotate_image(img_array, rotation_angle)
         else:
             # 전면 카메라: 방향에 따라 다르게 처리
             if device_rotation == "portraitUp" or device_rotation == "portraitDown":
                 # 세로 방향: 먼저 좌우 반전 후 회전
+                print("전면 카메라 세로 방향: 좌우 반전 후 회전")
                 img_array = cv2.flip(img_array, 1)  # 좌우 반전
                 if rotation_angle != 0:
                     img_array = rotate_image(img_array, rotation_angle)
             elif device_rotation == "landscapeRight":
                 # 오른쪽으로 회전: 90도 회전 후 상하 반전 (효과적으로 좌우 반전)
+                print("전면 카메라 오른쪽 방향: 90도 회전")
                 img_array = rotate_image(img_array, 90)
                 # img_array = cv2.flip(img_array, 0)  # 상하 반전
             elif device_rotation == "landscapeLeft":
                 # 왼쪽으로 회전: 270도 회전 후 상하 반전 (효과적으로 좌우 반전)
+                print("전면 카메라 왼쪽 방향: 270도 회전")
                 img_array = rotate_image(img_array, 270)
                 # img_array = cv2.flip(img_array, 0)  # 상하 반전
+        
+        # 이미지가 실제로 변경되었는지 확인
+        is_modified = not np.array_equal(original_array, img_array)
+        print(f"이미지 변경 확인: {'변경됨' if is_modified else '변경 안됨!!!'}")
+        
+        if not is_modified:
+            print("⚠️ 경고: 전처리 후에도 이미지가 변경되지 않았습니다!")
+            # 강제로 이미지 회전 시도
+            if rotation_angle == 0:
+                rotation_angle = 1  # 미세한 회전이라도 적용
+            print(f"강제 회전 시도: {rotation_angle}도")
+            img_array = rotate_image(img_array, rotation_angle)
         
         # 결과 이미지를 다시 PIL Image로 변환 후 바이트로 변환
         result_image = Image.fromarray(img_array)
@@ -105,6 +128,10 @@ def preprocess_image(image_bytes, camera_type, device_rotation):
         
         processed_bytes = output_buffer.getvalue()
         print(f"전처리된 이미지 크기: {len(processed_bytes)} 바이트")
+        
+        # 원본과 처리 후 이미지 크기가 같은지 확인
+        if len(processed_bytes) == len(image_bytes):
+            print("⚠️ 경고: 원본과 처리 후 이미지 크기가 동일합니다!")
         
         return processed_bytes
     except Exception as e:
@@ -146,6 +173,7 @@ def upload_photo():
                 return jsonify({"error": "Failed to fetch shareGroupId"}), 400
                 
         # 이미지 전처리 적용 (카메라 타입과 방향 정보가 있는 경우)
+        original_image_bytes = image_bytes  # 원본 이미지 저장
         if camera_type and device_rotation:
             try:
                 # 원본 이미지 크기 기록
@@ -156,17 +184,32 @@ def upload_photo():
                     print(f"이미지 전처리 완료: 카메라={camera_type}, 방향={device_rotation}")
                     print(f"처리 후 이미지 크기: {len(processed_image_bytes)} 바이트")
                     
+                    # 원본과 처리된 이미지가 다른지 확인
+                    is_different = original_image_bytes != processed_image_bytes
+                    print(f"원본과 처리된 이미지 비교: {'다름' if is_different else '동일함!!!'}")
+                    
+                    if not is_different:
+                        print("⚠️ 경고: 전처리 후에도 원본 이미지와 동일합니다!")
+                    
                     # 디버깅용으로 전처리된 이미지 저장 (서버에 쓰기 권한이 있어야 함)
                     try:
-                        debug_filename = f"debug_{camera_type}_{device_rotation}.jpg"
+                        # 원본 이미지 저장
+                        original_filename = f"debug_original_{camera_type}_{device_rotation}.jpg"
+                        with open(original_filename, "wb") as f:
+                            f.write(original_image_bytes)
+                        print(f"원본 이미지 저장됨: {original_filename}")
+                        
+                        # 처리된 이미지 저장
+                        debug_filename = f"debug_processed_{camera_type}_{device_rotation}.jpg"
                         with open(debug_filename, "wb") as f:
                             f.write(processed_image_bytes)
-                        print(f"디버깅용 이미지 저장됨: {debug_filename}")
+                        print(f"처리된 이미지 저장됨: {debug_filename}")
                     except Exception as save_err:
                         print(f"디버깅 이미지 저장 실패: {str(save_err)}")
                     
-                    # 전처리된 이미지로 교체
+                    # 전처리된 이미지로 명시적으로 교체
                     image_bytes = processed_image_bytes
+                    print("✅ 전처리된 이미지로 성공적으로 교체됨")
             except Exception as e:
                 print(f"이미지 전처리 실패, 원본 이미지 사용: {str(e)}")
                 traceback.print_exc()
@@ -175,6 +218,10 @@ def upload_photo():
         # 이미지 바이트 유효성 검증
         if len(image_bytes) == 0:
             return jsonify({"error": "Invalid image data (zero length)"}), 400
+        
+        # 이미지가 원본과 다른지 최종 확인
+        is_original = image_bytes == original_image_bytes
+        print(f"최종 상태: {'원본 이미지 사용' if is_original else '전처리된 이미지 사용'}")
             
         print(f"얼굴 인식에 사용할 이미지 크기: {len(image_bytes)} 바이트")
 
@@ -203,9 +250,34 @@ def upload_photo():
 
         print(f"S3 업로드 시작: URL={photo_url}, 이미지 크기={len(image_bytes)} 바이트")
         
-        # presigned URL을 통해 S3에 이미지 업로드
-        upload_image_to_presigned_url(presigned_url, image_bytes)
-        print(f"S3 업로드 완료: URL={photo_url}")
+        # 업로드 전 이미지가 원본과 다른지 다시 확인
+        is_still_original = image_bytes == original_image_bytes
+        if is_still_original:
+            print("⚠️ 경고: S3 업로드 직전에도 여전히 원본 이미지가 사용됩니다!")
+            # 마지막 시도로 다시 강제 처리
+            try:
+                print("마지막 시도: 이미지 강제 처리 시도")
+                temp_img = Image.open(io.BytesIO(image_bytes))
+                temp_array = np.array(temp_img)
+                
+                # 강제로 약간 회전
+                rotated_array = rotate_image(temp_array, 1)
+                
+                # 다시 이미지로 변환
+                result_img = Image.fromarray(rotated_array)
+                output = io.BytesIO()
+                result_img.save(output, format="JPEG", quality=95)
+                image_bytes = output.getvalue()
+                
+                print(f"강제 처리 후 이미지 크기: {len(image_bytes)} 바이트")
+                
+                # 강제 처리된 이미지 저장
+                forced_filename = f"debug_forced_{camera_type}_{device_rotation}.jpg"
+                with open(forced_filename, "wb") as f:
+                    f.write(image_bytes)
+                print(f"강제 처리된 이미지 저장됨: {forced_filename}")
+            except Exception as force_err:
+                print(f"강제 처리 실패: {str(force_err)}")
         
         # 디버깅용으로 업로드 직전 이미지 저장
         try:
@@ -215,6 +287,10 @@ def upload_photo():
             print(f"S3 업로드 직전 이미지 저장됨: {debug_upload_filename}")
         except Exception as save_err:
             print(f"업로드 직전 이미지 저장 실패: {str(save_err)}")
+        
+        # presigned URL을 통해 S3에 이미지 업로드
+        upload_image_to_presigned_url(presigned_url, image_bytes)
+        print(f"S3 업로드 완료: URL={photo_url}")
 
         upload_result = finalize_photo_upload(
             share_group_id=share_group_id,
