@@ -323,6 +323,9 @@ def analyze_arrangement():
                     key = d.get("instruction")
                     group_map[key].append(d.get("name"))
                 for instruction, names in group_map.items():
+                    # 이동지시만 메시지에 포함 ("카메라에 너무 멀다"는 제외)
+                    if "멀다" in instruction:
+                        continue
                     def get_first_name(name):
                         if name and isinstance(name, str) and len(name) > 1:
                             return name[1:] if len(name) > 2 else name[-1]
