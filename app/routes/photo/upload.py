@@ -22,26 +22,84 @@ def rotate_image(image, angle):
     # 이미지가 PIL Image인 경우 numpy 배열로 변환
     if isinstance(image, Image.Image):
         image = np.array(image)
+    
+    print(f"회전 시작: 이미지 크기 {image.shape}, 각도 {angle}")
+    
+    # 각도가 0이면 회전하지 않음
+    if angle == 0:
+        print("회전 각도가 0도여서 회전 생략")
+        return image
+        
+    # OpenCV는 이미지를 반시계 방향으로 회전시키므로 양수 각도를 사용
+    cv_angle = angle # OpenCV는 반시계 방향이 양수
 
     (h, w) = image.shape[:2]
     center = (w // 2, h // 2)
+    
+    print(f"회전 중심: {center}, 높이: {h}, 너비: {w}")
 
     # 회전 행렬 계산
-    rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
+    rotation_matrix = cv2.getRotationMatrix2D(center, cv_angle, 1.0)
+    
+    print(f"회전 행렬: \n{rotation_matrix}")
 
     # 회전 후 bounding box 크기 계산
     abs_cos = abs(rotation_matrix[0, 0])
     abs_sin = abs(rotation_matrix[0, 1])
     new_w = int(h * abs_sin + w * abs_cos)
     new_h = int(h * abs_cos + w * abs_sin)
+    
+    print(f"새 이미지 크기 계산: 너비 {new_w}, 높이 {new_h}")
 
     # 회전 행렬의 이동 보정
     rotation_matrix[0, 2] += (new_w / 2) - center[0]
     rotation_matrix[1, 2] += (new_h / 2) - center[1]
+    
+    print(f"이동 보정된 회전 행렬: \n{rotation_matrix}")
 
     # 회전 적용 (새로운 크기로)
     rotated = cv2.warpAffine(image, rotation_matrix, (new_w, new_h))
+    
+    print(f"회전 완료: 결과 이미지 크기 {rotated.shape}")
+    
+    # 회전이 제대로 적용되었는지 확인
+    if rotated.shape[:2] == image.shape[:2] and angle != 0:
+        print("⚠️ 경고: 회전 후에도 이미지 크기가 변경되지 않았습니다!")
+    
     return rotated
+
+# 직접 90도 단위로 이미지를 회전시키는 함수 추가
+def rotate_image_90(image, quarters):
+    """
+    이미지를 90도의 배수로 회전시키는 함수
+    
+    Args:
+        image: 회전할 이미지 (NumPy 배열)
+        quarters: 90도 회전 횟수 (1: 90도, 2: 180도, 3: 270도)
+    
+    Returns:
+        회전된 이미지
+    """
+    # 이미지가 PIL Image인 경우 numpy 배열로 변환
+    if isinstance(image, Image.Image):
+        image = np.array(image)
+    
+    print(f"90도 단위 회전: {quarters * 90}도")
+    
+    # quarters를 0~3 사이 값으로 보정
+    quarters = quarters % 4
+    if quarters == 0:
+        return image
+    
+    # 90도 단위로 회전 (cv2.rotate 사용)
+    if quarters == 1:  # 90도
+        return cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
+    elif quarters == 2:  # 180도
+        return cv2.rotate(image, cv2.ROTATE_180)
+    elif quarters == 3:  # 270도
+        return cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+    
+    return image
 
 # 이미지 전처리 함수
 def preprocess_image(image_bytes, camera_type, device_rotation):
@@ -60,20 +118,21 @@ def preprocess_image(image_bytes, camera_type, device_rotation):
         original_array = img_array.copy()  # 원본 이미지 배열 복사
         
         # 방향에 따른 회전 각도 설정
-        rotation_angle = 0
+        quarters = 0  # 90도 회전 횟수
         if device_rotation == "portraitUp":
-            rotation_angle = 0
+            quarters = 0
         elif device_rotation == "landscapeRight":
-            rotation_angle = 90
+            quarters = 1  # 90도 시계방향
         elif device_rotation == "portraitDown":
-            rotation_angle = 180
+            quarters = 2  # 180도
         elif device_rotation == "landscapeLeft":
-            rotation_angle = 270
+            quarters = 3  # 270도 시계방향 (90도 반시계방향)
         
-        print(f"회전 각도: {rotation_angle}, 카메라 타입: {camera_type}")
+        rotation_angle = quarters * 90
+        print(f"회전 각도: {rotation_angle}도 ({quarters} 쿼터), 카메라 타입: {camera_type}")
         
         # 변환이 필요한지 여부
-        needs_processing = rotation_angle != 0 or camera_type == "front"
+        needs_processing = quarters != 0 or camera_type == "front"
         if not needs_processing:
             print("이미지 변환 필요 없음: 후면 카메라, 세로 방향")
             return image_bytes  # 원본 반환
@@ -81,27 +140,31 @@ def preprocess_image(image_bytes, camera_type, device_rotation):
         # 카메라 타입과 방향에 따른 최적의 이미지 처리
         if camera_type == "back":
             # 후면 카메라: 단순히 회전만 적용
-            if rotation_angle != 0:
-                print(f"후면 카메라 회전 적용: {rotation_angle}도")
-                img_array = rotate_image(img_array, rotation_angle)
+            if quarters != 0:
+                print(f"후면 카메라 회전 적용: {quarters} 쿼터 (90도 단위)")
+                # 새 rotate_image_90 함수 사용
+                img_array = rotate_image_90(img_array, quarters)
         else:
             # 전면 카메라: 방향에 따라 다르게 처리
             if device_rotation == "portraitUp" or device_rotation == "portraitDown":
                 # 세로 방향: 먼저 좌우 반전 후 회전
                 print("전면 카메라 세로 방향: 좌우 반전 후 회전")
                 img_array = cv2.flip(img_array, 1)  # 좌우 반전
-                if rotation_angle != 0:
-                    img_array = rotate_image(img_array, rotation_angle)
+                if quarters != 0:
+                    # 새 rotate_image_90 함수 사용
+                    img_array = rotate_image_90(img_array, quarters)
             elif device_rotation == "landscapeRight":
-                # 오른쪽으로 회전: 90도 회전 후 상하 반전 (효과적으로 좌우 반전)
-                print("전면 카메라 오른쪽 방향: 90도 회전")
-                img_array = rotate_image(img_array, 90)
-                # img_array = cv2.flip(img_array, 0)  # 상하 반전
+                # 오른쪽으로 회전: 90도 회전 후 필요시 반전
+                print("전면 카메라 오른쪽 방향: 90도 회전 (1쿼터)")
+                img_array = rotate_image_90(img_array, 1)  # 90도 시계방향
+                # 필요시 추가 반전
+                img_array = cv2.flip(img_array, 1)  # 좌우 반전
             elif device_rotation == "landscapeLeft":
-                # 왼쪽으로 회전: 270도 회전 후 상하 반전 (효과적으로 좌우 반전)
-                print("전면 카메라 왼쪽 방향: 270도 회전")
-                img_array = rotate_image(img_array, 270)
-                # img_array = cv2.flip(img_array, 0)  # 상하 반전
+                # 왼쪽으로 회전: 270도 회전 후 필요시 반전
+                print("전면 카메라 왼쪽 방향: 270도 회전 (3쿼터)")
+                img_array = rotate_image_90(img_array, 3)  # 270도 시계방향
+                # 필요시 추가 반전
+                img_array = cv2.flip(img_array, 1)  # 좌우 반전
         
         # 이미지가 실제로 변경되었는지 확인
         is_modified = not np.array_equal(original_array, img_array)
@@ -110,10 +173,8 @@ def preprocess_image(image_bytes, camera_type, device_rotation):
         if not is_modified:
             print("⚠️ 경고: 전처리 후에도 이미지가 변경되지 않았습니다!")
             # 강제로 이미지 회전 시도
-            if rotation_angle == 0:
-                rotation_angle = 1  # 미세한 회전이라도 적용
-            print(f"강제 회전 시도: {rotation_angle}도")
-            img_array = rotate_image(img_array, rotation_angle)
+            print("강제 90도 회전 시도")
+            img_array = rotate_image_90(img_array, 1)  # 강제로 90도 회전
         
         # 결과 이미지를 다시 PIL Image로 변환 후 바이트로 변환
         result_image = Image.fromarray(img_array)
@@ -256,12 +317,13 @@ def upload_photo():
             print("⚠️ 경고: S3 업로드 직전에도 여전히 원본 이미지가 사용됩니다!")
             # 마지막 시도로 다시 강제 처리
             try:
-                print("마지막 시도: 이미지 강제 처리 시도")
+                print("마지막 시도: 이미지 강제 90도 회전 시도")
                 temp_img = Image.open(io.BytesIO(image_bytes))
                 temp_array = np.array(temp_img)
                 
-                # 강제로 약간 회전
-                rotated_array = rotate_image(temp_array, 1)
+                # 강제로 90도 회전 (OpenCV 직접 사용)
+                # 미세 회전이 아닌 명확한 90도 회전 사용
+                rotated_array = cv2.rotate(temp_array, cv2.ROTATE_90_CLOCKWISE)
                 
                 # 다시 이미지로 변환
                 result_img = Image.fromarray(rotated_array)
@@ -269,7 +331,7 @@ def upload_photo():
                 result_img.save(output, format="JPEG", quality=95)
                 image_bytes = output.getvalue()
                 
-                print(f"강제 처리 후 이미지 크기: {len(image_bytes)} 바이트")
+                print(f"강제 90도 회전 후 이미지 크기: {len(image_bytes)} 바이트")
                 
                 # 강제 처리된 이미지 저장
                 forced_filename = f"debug_forced_{camera_type}_{device_rotation}.jpg"
