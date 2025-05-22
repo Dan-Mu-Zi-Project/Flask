@@ -182,13 +182,21 @@ def upload_photo():
             # 얼굴 인식 처리
             result = extract_multiple_face_embeddings(image_bytes)
             valid_embeddings = [r for r in result if "embedding" in r]
-            
-            profile_id_list = []
+
+            matched_profiles = []
+            profile_id_set = set()
             if valid_embeddings:
-                query_embedding = valid_embeddings[0]["embedding"]
                 group_vector_response = request_group_face_vectors(share_group_id, access_token)
-                best_matches = find_best_match(query_embedding, group_vector_response)
-                profile_id_list = [match["profileId"] for match in best_matches]
+                for idx, embedding_info in enumerate(valid_embeddings):
+                    query_embedding = embedding_info["embedding"]
+                    best_matches = find_best_match(query_embedding, group_vector_response)
+                    matched_profiles.append({
+                        "faceIndex": idx,
+                        "matches": best_matches
+                    })
+                    for match in best_matches:
+                        profile_id_set.add(match["profileId"])
+            profile_id_list = list(profile_id_set)
 
             # 이미지 업로드
             filename = str(uuid.uuid4()) + image_file.filename
@@ -218,7 +226,7 @@ def upload_photo():
 
         return jsonify({
             "message": "✅ 사진 업로드 및 등록 완료",
-            "matchedProfiles": best_matches if 'best_matches' in locals() else [],
+            "matchedProfiles": matched_profiles,
             "imageUrl": photo_url,
             "uploadResult": upload_result,
             "preprocessed": processed_image_bytes is not None and image_bytes == processed_image_bytes
