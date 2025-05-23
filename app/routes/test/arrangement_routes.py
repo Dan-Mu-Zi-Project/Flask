@@ -497,3 +497,5 @@ def arrangement_only():
         current_app.logger.error(f'배치 분석 실패: {str(e)}')
         return jsonify({'error': f'배치 분석 실패: {str(e)}'}), 500
     
+
+    
