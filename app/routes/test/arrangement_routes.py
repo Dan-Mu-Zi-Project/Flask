@@ -498,4 +498,5 @@ def arrangement_only():
         return jsonify({'error': f'배치 분석 실패: {str(e)}'}), 500
     
 
+
     
